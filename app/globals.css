@@ -157,6 +157,13 @@ body { background: var(--dp-color-ground); color: var(--dp-color-ink); font-fami
 .forge-mark span:last-child { display: none; }
 .forge-mark__symbol { font-size: 27px; line-height: 1; }
 .forge-nav__links { justify-content: flex-end; gap: clamp(18px, 3vw, 48px); padding-inline: 24px; font-weight: 700; }
+.forge-nav__account { display: flex; align-items: stretch; gap: 8px; }
+.forge-nav__profile { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 12px; border: var(--dp-border-panel) solid var(--dp-color-ink); background: var(--dp-color-contrast); color: var(--dp-color-ink); font-weight: 800; text-decoration: none; }
+.forge-nav__profile:hover { background: var(--dp-color-emphasis); }
+.forge-nav__profile-name { max-width: 15ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.forge-nav__avatar { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 2px solid var(--dp-color-ink); background-color: var(--dp-color-field); background-position: center; background-size: cover; font-size: 13px; }
+.forge-nav__logout { min-height: 0; padding-inline: 14px; cursor: pointer; }
+.forge-nav__loading { align-self: center; width: 96px; height: 52px; border: var(--dp-border-panel) solid var(--dp-color-ink); background: var(--dp-color-field); }
 .forge-nav a:not(.forge-button), .forge-footer a { color: inherit; text-decoration: none; }
 .forge-nav a:not(.forge-button):hover, .forge-footer a:hover, .text-link:hover { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; }
 .forge-button { min-height: 52px; justify-content: center; gap: 12px; padding: 12px 20px; border: var(--dp-border-panel) solid var(--dp-color-ink); border-radius: 0; box-shadow: var(--dp-shadow-small); /* taste-skill-ignore: neo brutalism requires solid offset shadows */ color: var(--dp-color-ink); font-weight: 800; text-decoration: none; transition: transform 0s, box-shadow 0s; }
@@ -285,6 +292,11 @@ body { background: var(--dp-color-ground); color: var(--dp-color-ink); font-fami
   .forge-mark { padding: 10px; }
   .forge-nav__links { display: none; }
   .forge-nav .forge-button { min-height: 44px; padding: 8px 12px; box-shadow: 4px 4px 0 var(--dp-color-ink); /* taste-skill-ignore: neo brutalism requires solid offset shadows */ font-size: 14px; }
+  .forge-nav__account { gap: 6px; }
+  .forge-nav__profile { padding: 5px; }
+  .forge-nav__profile-name { display: none; }
+  .forge-nav__logout { padding-inline: 10px !important; }
+  .forge-nav__loading { width: 76px; height: 44px; }
   .forge-hero { grid-template-columns: 1fr; grid-template-rows: auto; min-height: 0; gap: 6px; }
   .hero-tile { min-height: 240px; padding: 22px; box-shadow: 5px 5px 0 var(--dp-color-ink); /* taste-skill-ignore: neo brutalism requires solid offset shadows */ }
   .hero-tile--name { min-height: 32svh; }

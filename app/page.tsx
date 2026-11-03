@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 const searchResults = [
   {
@@ -103,13 +105,57 @@ function CodeFragment() {
   );
 }
 
+function UserNavigation() {
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+  const initials = user?.name
+    ?.split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() ?? "U";
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  if (isPending) {
+    return <span className="forge-nav__loading" aria-label="Checking sign-in status" />;
+  }
+
+  if (!user) {
+    return <Link className="forge-button forge-button--dark" href="/sign-in">Sign in <span aria-hidden="true">→</span></Link>;
+  }
+
+  return (
+    <div className="forge-nav__account">
+      <Link className="forge-nav__profile" href="/dashboard" aria-label={`Open dashboard for ${user.name}`}>
+        <span
+          className="forge-nav__avatar"
+          aria-hidden="true"
+          style={user.image ? { backgroundImage: `url(${user.image})` } : undefined}
+        >
+          {!user.image && initials}
+        </span>
+        <span className="forge-nav__profile-name">{user.name}</span>
+      </Link>
+      <button className="forge-button forge-button--dark forge-nav__logout" type="button" onClick={handleSignOut}>
+        Log out
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main className="forge-page">
       <nav className="forge-nav" aria-label="Primary navigation">
         <Link className="forge-mark" href="/" aria-label="DSA Forge home"><span className="forge-mark__symbol">+</span><span>DSA Forge</span></Link>
         <div className="forge-nav__links"><a href="#search">Search</a><a href="#hints">Hints</a><a href="#verify">Verify</a><a href="#practice">Practice</a></div>
-        <a className="forge-button forge-button--dark" href="/sign-in">Start solving <span aria-hidden="true">→</span></a>
+        <UserNavigation />
       </nav>
 
       <section className="forge-hero" aria-labelledby="hero-title">
