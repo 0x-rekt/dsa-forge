@@ -1,161 +1,122 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  DashboardNav,
+  DashboardSection,
+  DashboardStats,
+  PracticeLoop,
+  dashboardPanel,
+} from "@/components/forge/dashboard";
 import { auth } from "@/lib/auth";
 
 export const instant = false;
 
-const dashboardStats = [
-  { label: "Attempts", value: "0", detail: "No attempts yet" },
-  { label: "Solved", value: "0", detail: "Verified passes" },
-  { label: "Hints used", value: "0", detail: "Across all problems" },
-  { label: "Patterns tracked", value: "0", detail: "Builds from attempts" },
-];
-
-const practiceSteps = [
-  { title: "Find", copy: "Search by the words you remember." },
-  { title: "Think", copy: "Use hints without skipping the work." },
-  { title: "Verify", copy: "Run code against the cases that matter." },
-];
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 export default async function DashboardPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/sign-in");
-  }
-
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/sign-in");
   const user = session.user;
-  const userInitials = initials(user.name);
-
   return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar" aria-label="Dashboard navigation">
-        <Link className="dashboard-brand" href="/" aria-label="DSA Forge home">
-          <span className="dashboard-brand__mark" aria-hidden="true">+</span>
-          <span>DSA Forge</span>
-        </Link>
-
-        <div className="dashboard-scope">
-          <span>Personal practice</span>
-          <strong>{user.name}</strong>
-        </div>
-
-        <nav className="dashboard-nav" aria-label="Workspace">
-          <span className="dashboard-nav__label">Workspace</span>
-          <Link className="dashboard-nav__item dashboard-nav__item--active" href="/dashboard" aria-current="page">Overview</Link>
-          <Link className="dashboard-nav__item" href="/#search">Find a problem</Link>
-          <Link className="dashboard-nav__item" href="/#hints">Hint ladder</Link>
-          <Link className="dashboard-nav__item" href="/#verify">Verification</Link>
-        </nav>
-
-        <div className="dashboard-sidebar__bottom">
-          <div className="dashboard-user">
-            <span className="dashboard-user__avatar" aria-hidden="true">{userInitials}</span>
-            <span>
-              <strong>{user.name}</strong>
-              <small>{user.email}</small>
-            </span>
-          </div>
-          <Link className="dashboard-back" href="/">Back to forge <span aria-hidden="true">↗</span></Link>
-        </div>
-      </aside>
-
-      <main className="dashboard-canvas">
-        <header className="dashboard-titlebar">
+    <div className="grid min-h-screen bg-[#fff5d6] text-black lg:grid-cols-[248px_minmax(0,1fr)]">
+      <DashboardNav user={user} />
+      <main className="min-w-0 bg-white px-5 py-9 sm:px-8 lg:px-16">
+        <header className="mx-auto mb-8 flex max-w-[1160px] flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <p className="dashboard-breadcrumb">DSA Forge / Personal practice</p>
-            <h1>Practice overview</h1>
-            <p className="dashboard-titlebar__description">Your progress is built from attempts, hints, and verified runs.</p>
+            <p className="mb-2 text-xs font-extrabold text-[#4e4a3e]">
+              DSA Forge / Personal practice
+            </p>
+            <h1 className="text-[clamp(2rem,3vw,2.7rem)] font-extrabold leading-none tracking-[-.055em]">
+              Practice overview
+            </h1>
+            <p className="mt-3 max-w-[48ch] text-[15px] text-[#464646]">
+              Your progress is built from attempts, hints, and verified runs.
+            </p>
           </div>
-          <Link className="dashboard-primary" href="/#search">Find a problem <span aria-hidden="true">→</span></Link>
+          <Link
+            className="inline-flex min-h-11 items-center justify-center gap-3 border-4 border-black bg-black px-4 py-2 font-extrabold text-white transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
+            href="/#search"
+          >
+            Find a problem →
+          </Link>
         </header>
-
-        <section className="dashboard-stats" aria-label="Practice totals">
-          {dashboardStats.map((stat) => (
-            <div className="dashboard-stat" key={stat.label}>
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-              <small>{stat.detail}</small>
-            </div>
-          ))}
-        </section>
-
-        <div className="dashboard-content-grid">
-          <section className="dashboard-panel dashboard-recommendation" aria-labelledby="recommendation-title">
-            <div className="dashboard-panel__heading">
+        <DashboardStats />
+        <div className="mx-auto grid max-w-[1160px] items-start gap-4 md:grid-cols-[1.35fr_.85fr]">
+          <section
+            className={`${dashboardPanel} bg-[#ffed00]`}
+            aria-labelledby="recommendation-title"
+          >
+            <div className="flex min-h-[88px] justify-between gap-4 border-b-2 border-black p-5">
               <div>
-                <h2 id="recommendation-title">Recommended next</h2>
-                <p>Start with a classic pattern and make the first attempt count.</p>
+                <h2
+                  id="recommendation-title"
+                  className="text-[21px] font-extrabold leading-none tracking-[-.04em]"
+                >
+                  Recommended next
+                </h2>
+                <p className="mt-2 max-w-[42ch] text-[13px] font-bold text-[#474747]">
+                  Start with a classic pattern and make the first attempt count.
+                </p>
               </div>
-              <span className="dashboard-panel__mark" aria-hidden="true">→</span>
+              <span
+                className="text-3xl font-extrabold leading-none"
+                aria-hidden="true"
+              >
+                →
+              </span>
             </div>
-            <div className="dashboard-problem">
+            <div className="flex min-h-48 flex-col justify-between gap-6 p-5">
               <div>
-                <span className="dashboard-problem__pattern">Hash map · Easy</span>
-                <h3>Two Sum</h3>
-                <p>Find two numbers in an array that add to a target without checking every pair.</p>
+                <span className="text-[13px] font-extrabold">
+                  Hash map · Easy
+                </span>
+                <h3 className="mt-2 text-[clamp(2rem,4vw,3.7rem)] font-extrabold leading-none tracking-[-.07em]">
+                  Two Sum
+                </h3>
+                <p className="mt-4 max-w-[50ch] font-bold">
+                  Find two numbers in an array that add to a target without
+                  checking every pair.
+                </p>
               </div>
-              <Link className="dashboard-panel__link" href="/#search">Find this problem <span aria-hidden="true">↗</span></Link>
+              <Link
+                className="w-fit font-extrabold underline decoration-2 underline-offset-4"
+                href="/#search"
+              >
+                Find this problem ↗
+              </Link>
             </div>
           </section>
-
-          <section className="dashboard-panel dashboard-patterns" aria-labelledby="patterns-title">
-            <div className="dashboard-panel__heading">
-              <div>
-                <h2 id="patterns-title">Weak patterns</h2>
-                <p>Appears after you submit attempts.</p>
-              </div>
-            </div>
-            <div className="dashboard-empty dashboard-empty--compact">
+          <DashboardSection
+            title="Weak patterns"
+            description="Appears after you submit attempts."
+            className="bg-[#d4bdff]"
+          >
+            <div className="grid min-h-48 content-center gap-2 p-5">
               <strong>Nothing to rank yet.</strong>
-              <span>Your hint use and failed runs will shape this list.</span>
+              <span className="max-w-[34ch] text-sm font-bold text-[#484848]">
+                Your hint use and failed runs will shape this list.
+              </span>
             </div>
-          </section>
-
-          <section className="dashboard-panel dashboard-attempts" aria-labelledby="attempts-title">
-            <div className="dashboard-panel__heading">
-              <div>
-                <h2 id="attempts-title">Recent attempts</h2>
-                <p>Every run gets a verdict and a pattern.</p>
-              </div>
-              <span className="dashboard-panel__count">0 attempts</span>
-            </div>
-            <div className="dashboard-empty">
-              <span className="dashboard-empty__line" aria-hidden="true" />
+          </DashboardSection>
+          <DashboardSection
+            title="Recent attempts"
+            description="Every run gets a verdict and a pattern."
+            className="min-h-80"
+          >
+            <div className="grid min-h-48 content-center gap-2 p-5">
+              <span className="h-1 w-12 bg-black" aria-hidden="true" />
               <strong>Your first attempt will appear here.</strong>
-              <span>Search for a problem to start building a useful history.</span>
-              <Link className="dashboard-panel__link" href="/#search">Search problems <span aria-hidden="true">↗</span></Link>
+              <span className="max-w-[34ch] text-sm font-bold text-[#484848]">
+                Search for a problem to start building a useful history.
+              </span>
+              <Link
+                className="mt-2 w-fit font-extrabold underline decoration-2 underline-offset-4"
+                href="/#search"
+              >
+                Search problems ↗
+              </Link>
             </div>
-          </section>
-
-          <section className="dashboard-panel dashboard-loop" aria-labelledby="loop-title">
-            <div className="dashboard-panel__heading">
-              <div>
-                <h2 id="loop-title">The practice loop</h2>
-                <p>What DSA Forge will measure as you work.</p>
-              </div>
-            </div>
-            <ol className="dashboard-loop__list">
-              {practiceSteps.map((step) => (
-                <li key={step.title}>
-                  <strong>{step.title}</strong>
-                  <span>{step.copy}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+          </DashboardSection>
+          <PracticeLoop />
         </div>
       </main>
     </div>

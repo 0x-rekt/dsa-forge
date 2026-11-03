@@ -2,218 +2,362 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
+import {
+  FeaturePanel,
+  CodeFragment,
+  HintFragment,
+} from "@/components/forge/feature-panel";
+import { RetrievalBoard } from "@/components/forge/retrieval-board";
+import { SearchDemo, fallbackResults } from "@/components/forge/search-demo";
+import { LandingNav } from "@/components/forge/landing-nav";
+import type { DisplayResult } from "@/components/forge/types";
 
-const searchResults = [
-  {
-    title: "Longest Substring Without Repeating Characters",
-    pattern: "sliding window",
-    difficulty: "Medium",
-    detail:
-      "Keep a moving window of unique characters. When a repeat appears, move the left edge past its previous position.",
-  },
-  {
-    title: "Two Sum",
-    pattern: "hash map",
-    difficulty: "Easy",
-    detail:
-      "Store values already seen and check whether the complement exists before adding the current number.",
-  },
-  {
-    title: "Number of Islands",
-    pattern: "graph traversal",
-    difficulty: "Medium",
-    detail:
-      "Walk each unvisited land cell with DFS or BFS, marking the connected component as visited.",
-  },
-];
-
-function SearchDemo() {
-  const [query, setQuery] = useState("array values add to a target");
-  const [active, setActive] = useState(1);
-  const result = searchResults[active];
-
-  function findProblem(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const next = query.toLowerCase().includes("island")
-      ? 2
-      : query.toLowerCase().includes("substring")
-        ? 0
-        : 1;
-    setActive(next);
-  }
-
-  return (
-    <div className="forge-ui forge-search" data-ui>
-      <div className="forge-ui__topline"><span>Problem search</span><span className="forge-ui__status">Ready</span></div>
-      <form className="forge-search__form" onSubmit={findProblem}>
-        <label className="sr-only" htmlFor="problem-search">Describe a DSA problem</label>
-        <input id="problem-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Describe a problem" />
-        <button type="submit">Find</button>
-      </form>
-      <div className="forge-search__result" aria-live="polite">
-        <div><span className="forge-ui__eyebrow">Best match</span><strong>{result.title}</strong></div>
-        <div className="forge-search__meta"><span>{result.pattern}</span><span>{result.difficulty}</span></div>
-      </div>
-    </div>
-  );
-}
-
-function RetrievalBoard() {
-  const [active, setActive] = useState(1);
-  const result = searchResults[active];
-
-  return (
-    <div className="retrieval-board" data-ui>
-      <div className="retrieval-board__head"><span>Matches from your words</span><span>3 found</span></div>
-      <div className="retrieval-board__rows">
-        {searchResults.map((item, index) => (
-          <button className={`retrieval-row${active === index ? " is-active" : ""}`} key={item.title} onClick={() => setActive(index)} type="button">
-            <span className="retrieval-row__title">{item.title}</span>
-            <span className="retrieval-row__pattern">{item.pattern}</span>
-            <span className="retrieval-row__difficulty">{item.difficulty}</span>
-          </button>
-        ))}
-      </div>
-      <div className="retrieval-board__detail">
-        <div><span className="forge-ui__eyebrow">Why it matches</span><strong>{result.pattern}</strong></div>
-        <p>{result.detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function HintFragment() {
-  return (
-    <div className="hint-fragment" data-ui>
-      <div className="hint-fragment__head"><span>Hint ladder</span><span>2 / 4</span></div>
-      <div className="hint-fragment__track"><span className="is-current" /><span className="is-current" /><span /><span /></div>
-      <p>Try a window that grows with the right edge and shrinks when a duplicate appears.</p>
-      <button type="button">Ask for the next hint</button>
-    </div>
-  );
-}
-
-function CodeFragment() {
-  return (
-    <div className="code-fragment" data-ui>
-      <div className="code-fragment__head"><span>Python solution</span><span className="code-fragment__pass">Passed</span></div>
-      <pre>{`seen = set()\nfor value in nums:\n    if target - value in seen:\n        return True\n    seen.add(value)`}</pre>
-      <div className="code-fragment__tests"><span>Sample 01</span><span>Edge case 04</span><span>All checks passed</span></div>
-    </div>
-  );
-}
-
-function UserNavigation() {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const user = session?.user;
-  const initials = user?.name
-    ?.split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() ?? "U";
-
-  async function handleSignOut() {
-    await authClient.signOut();
-    router.push("/");
-    router.refresh();
-  }
-
-  if (isPending) {
-    return <span className="forge-nav__loading" aria-label="Checking sign-in status" />;
-  }
-
-  if (!user) {
-    return <Link className="forge-button forge-button--dark" href="/sign-in">Sign in <span aria-hidden="true">→</span></Link>;
-  }
-
-  return (
-    <div className="forge-nav__account">
-      <Link className="forge-nav__profile" href="/dashboard" aria-label={`Open dashboard for ${user.name}`}>
-        <span
-          className="forge-nav__avatar"
-          aria-hidden="true"
-          style={user.image ? { backgroundImage: `url(${user.image})` } : undefined}
-        >
-          {!user.image && initials}
-        </span>
-        <span className="forge-nav__profile-name">{user.name}</span>
-      </Link>
-      <button className="forge-button forge-button--dark forge-nav__logout" type="button" onClick={handleSignOut}>
-        Log out
-      </button>
-    </div>
-  );
-}
+const ink = "border-4 border-black";
+const shadow = "shadow-[8px_8px_0_#000]";
+const smallShadow = "shadow-[5px_5px_0_#000]";
+const button =
+  "inline-flex min-h-12 items-center justify-center gap-3 border-4 border-black px-5 py-3 font-extrabold transition-transform duration-0 hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4 active:translate-x-2 active:translate-y-2";
 
 export default function Home() {
+  const [liveResults, setLiveResults] =
+    useState<DisplayResult[]>(fallbackResults);
   return (
-    <main className="forge-page">
-      <nav className="forge-nav" aria-label="Primary navigation">
-        <Link className="forge-mark" href="/" aria-label="DSA Forge home"><span className="forge-mark__symbol">+</span><span>DSA Forge</span></Link>
-        <div className="forge-nav__links"><a href="#search">Search</a><a href="#hints">Hints</a><a href="#verify">Verify</a><a href="#practice">Practice</a></div>
-        <UserNavigation />
-      </nav>
-
-      <section className="forge-hero" aria-labelledby="hero-title">
-        <div className="hero-tile hero-tile--name"><h1 id="hero-title">DSA Forge</h1><p>Practice the thinking, not just the answer.</p></div>
-        <div className="hero-tile hero-tile--search"><SearchDemo /></div>
-        <div className="hero-tile hero-tile--statement"><p>Grounded explanations, progressive hints, and code checked against tests.</p><a className="text-link" href="#how-it-works">See the loop <span aria-hidden="true">↘</span></a></div>
-        <div className="hero-tile hero-tile--action"><span className="hero-tile__mark" aria-hidden="true">{"//"}</span><p>Find the pattern hiding inside the problem.</p><Link className="forge-button forge-button--paper" href="/sign-in">Open the forge</Link></div>
-      </section>
-
-      <section className="forge-intro" id="search" aria-labelledby="intro-title">
-        <p className="forge-lead" id="intro-title">Most coding help stops at the answer. DSA Forge keeps the struggle useful by turning every question into a path you can follow.</p>
-        <div className="intro-columns">
-          <p><strong>For interview prep.</strong> Search by the words you remember, then open the problem that fits the shape of your thinking.</p>
-          <p><strong>For the next move.</strong> Hints arrive in levels, from pattern name to plain-language approach to working code.</p>
-          <p><strong>For fewer false wins.</strong> Generated Python runs against sample and edge cases before it earns a green light.</p>
-          <p><strong>For a record of practice.</strong> Attempts and hints reveal the patterns that deserve another hour.</p>
+    <main className="min-h-screen overflow-x-clip bg-[#fff5d6] font-sans text-[17px] leading-relaxed text-black selection:bg-[#ffed00] [&_a]:focus-visible:outline-4 [&_a]:focus-visible:outline-[#ff4332] [&_a]:focus-visible:outline-offset-4">
+      <LandingNav />
+      <section
+        className="mx-auto grid min-h-[min(700px,calc(100svh-88px))] w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] md:grid-cols-2 md:grid-rows-2"
+        aria-labelledby="hero-title"
+      >
+        <div
+          className={`${ink} flex min-h-[32svh] flex-col justify-end bg-[#ffed00] p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
+        >
+          <h1
+            id="hero-title"
+            className="m-0 max-w-[7ch] text-[clamp(4rem,11.5vw,11rem)] font-extrabold leading-[.82] tracking-[-.075em]"
+          >
+            DSA Forge
+          </h1>
+          <p className="mt-7 max-w-[20ch] text-[clamp(1.1rem,2vw,1.6rem)] font-bold leading-tight">
+            Practice the thinking, not just the answer.
+          </p>
+        </div>
+        <div
+          id="search"
+          aria-label="Problem search"
+          className={`${ink} flex items-center bg-white p-[clamp(22px,3vw,42px)] ${shadow}`}
+        >
+          <SearchDemo onResults={setLiveResults} />
+        </div>
+        <div
+          className={`${ink} flex flex-col justify-between bg-black p-[clamp(22px,3vw,42px)] text-white ${shadow}`}
+        >
+          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
+            Grounded explanations, progressive hints, and code checked against
+            tests.
+          </p>
+          <a
+            className="font-extrabold underline decoration-3 underline-offset-4"
+            href="#how-it-works"
+          >
+            See the loop <span aria-hidden="true">↘</span>
+          </a>
+        </div>
+        <div
+          className={`${ink} flex min-h-[240px] flex-col justify-between bg-[#ff4332] p-[clamp(22px,3vw,42px)] ${shadow}`}
+        >
+          <span
+            className="text-[clamp(2.5rem,5vw,5rem)] font-extrabold leading-none tracking-[-.12em]"
+            aria-hidden="true"
+          >
+            {"//"}
+          </span>
+          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
+            Find the pattern hiding inside the problem.
+          </p>
+          <Link className={`${button} w-fit bg-[#fff5d6]`} href="/sign-in">
+            Open the forge
+          </Link>
         </div>
       </section>
-
-      <section className="forge-section forge-section--cream" id="practice" aria-labelledby="showcase-title">
-        <div className="section-heading section-heading--split"><h2 id="showcase-title">Search that names the pattern</h2><p>Describe the problem in your own words. Hybrid search combines meaning and keywords, then shows why each result belongs.</p></div>
-        <RetrievalBoard />
-      </section>
-
-      <section className="forge-section forge-section--violet" id="hints" aria-labelledby="features-title">
-        <div className="section-heading"><h2 id="features-title">What the forge checks</h2></div>
-        <div className="feature-board">
-          <article className="feature-cell feature-cell--yellow"><div><h3>Sources stay visible</h3><p>Every explanation points back to the problem material it used.</p></div><div className="citation-fragment" data-ui><span>Source chunk</span><strong>Statement · constraints</strong><p>“The window may move only forward.”</p></div></article>
-          <article className="feature-cell feature-cell--paper"><div><h3>Hints leave room to think</h3><p>Ask for the next nudge only when you need it. Go back when you want another try.</p></div><HintFragment /></article>
-          <article className="feature-cell feature-cell--red"><div><h3>Tests close the gap</h3><p>Code is not called verified until it has faced the cases that matter.</p></div><CodeFragment /></article>
-          <article className="feature-cell feature-cell--paper"><div><h3>Weak spots become visible</h3><p>Practice history turns repeated friction into a pattern you can name.</p></div><div className="progress-fragment" data-ui><div><span>Sliding window</span><strong>72%</strong></div><div className="progress-fragment__bar"><span style={{ width: "72%" }} /></div><div><span>Graph traversal</span><strong>41%</strong></div><div className="progress-fragment__bar"><span style={{ width: "41%" }} /></div></div></article>
-          <article className="feature-cell feature-cell--black"><div><h3>Answers stay focused</h3><p>No confident guesswork when the database has no good match.</p></div><div className="fallback-fragment" data-ui><span>Retrieval confidence</span><strong>Not enough evidence</strong><p>Try adding the constraint or a sample input.</p></div></article>
-          <article className="feature-cell feature-cell--yellow"><div><h3>Practice has a next page</h3><p>Recommendations follow the patterns where you need more reps.</p></div><div className="recommendation-fragment" data-ui><span>Recommended next</span><strong>Minimum Window Substring</strong><p>Pattern match · Medium</p></div></article>
+      <section
+        className="mx-auto w-[calc(100%-16px)] max-w-[1440px] py-[clamp(76px,11vw,150px)] sm:w-[calc(100%-32px)]"
+        aria-labelledby="intro-title"
+      >
+        <p
+          id="intro-title"
+          className="m-0 max-w-[980px] text-[clamp(1.8rem,3.7vw,3.6rem)] font-bold leading-tight tracking-[-.045em]"
+        >
+          Most coding help stops at the answer. DSA Forge keeps the struggle
+          useful by turning every question into a path you can follow.
+        </p>
+        <div className="mt-20 grid gap-6 md:grid-cols-4">
+          <p className="m-0 max-w-[28ch] text-[15px]">
+            <strong>For interview prep.</strong> Search by the words you
+            remember, then open the problem that fits the shape of your
+            thinking.
+          </p>
+          <p className="m-0 max-w-[28ch] text-[15px]">
+            <strong>For the next move.</strong> Hints arrive in levels, from
+            pattern name to plain-language approach to working code.
+          </p>
+          <p className="m-0 max-w-[28ch] text-[15px]">
+            <strong>For fewer false wins.</strong> Generated Python runs against
+            sample and edge cases before it earns a green light.
+          </p>
+          <p className="m-0 max-w-[28ch] text-[15px]">
+            <strong>For a record of practice.</strong> Attempts and hints reveal
+            the patterns that deserve another hour.
+          </p>
         </div>
       </section>
-
-      <section className="forge-section forge-section--black" id="how-it-works" aria-labelledby="how-title">
-        <div className="section-heading section-heading--light"><h2 id="how-title">From stuck to solved</h2><p>The loop is deliberately small: find the shape, take a hint, try the code, learn from the result.</p></div>
-        <div className="stage-bar" data-ui>
-          <div className="stage-bar__step stage-bar__step--yellow"><strong>Find</strong><p>Search the problem by meaning and words.</p></div>
-          <div className="stage-bar__step stage-bar__step--paper"><strong>Think</strong><p>Climb the hint ladder without skipping the work.</p></div>
-          <div className="stage-bar__step stage-bar__step--violet"><strong>Try</strong><p>Write the approach in your own editor.</p></div>
-          <div className="stage-bar__step stage-bar__step--red"><strong>Verify</strong><p>Run it on cases before you trust it.</p></div>
+      <section
+        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-white p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
+        id="practice"
+        aria-labelledby="showcase-title"
+      >
+        <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
+          <h2
+            id="showcase-title"
+            className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+          >
+            Search that names the pattern
+          </h2>
+          <p className="m-0 max-w-[34ch] text-[19px] font-bold leading-snug">
+            Describe the problem in your own words. Hybrid search combines
+            meaning and keywords, then shows why each result belongs.
+          </p>
+        </div>
+        <RetrievalBoard items={liveResults} />
+      </section>
+      <section
+        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
+        id="hints"
+        aria-labelledby="features-title"
+      >
+        <h2
+          id="features-title"
+          className="mb-14 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+        >
+          What the forge checks
+        </h2>
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+          <FeaturePanel
+            title="Sources stay visible"
+            copy="Every explanation points back to the problem material it used."
+            body={
+              <div className={`${ink} bg-white p-4`} data-ui>
+                <span className="text-[13px] font-extrabold">Source chunk</span>
+                <strong className="mt-3 block text-[21px] leading-none">
+                  Statement · constraints
+                </strong>
+                <p className="mt-3 text-sm">
+                  “The window may move only forward.”
+                </p>
+              </div>
+            }
+            tone="bg-[#ffed00]"
+          />
+          <FeaturePanel
+            title="Hints leave room to think"
+            copy="Ask for the next nudge only when you need it."
+            body={<HintFragment />}
+            tone="bg-white"
+          />
+          <FeaturePanel
+            title="Tests close the gap"
+            copy="Code is not called verified until it has faced the cases that matter."
+            body={<CodeFragment />}
+            tone="bg-[#ff4332]"
+          />
+          <FeaturePanel
+            title="Weak spots become visible"
+            copy="Practice history turns repeated friction into a pattern you can name."
+            body={
+              <div className={`${ink} bg-white p-4`} data-ui>
+                <div className="flex justify-between text-sm font-bold">
+                  <span>Sliding window</span>
+                  <strong>72%</strong>
+                </div>
+                <div className="my-2 h-3 border-2 border-black bg-[#d4bdff]">
+                  <span className="block h-full w-[72%] bg-[#ff4332]" />
+                </div>
+                <div className="mt-4 flex justify-between text-sm font-bold">
+                  <span>Graph traversal</span>
+                  <strong>41%</strong>
+                </div>
+                <div className="my-2 h-3 border-2 border-black bg-[#d4bdff]">
+                  <span className="block h-full w-[41%] bg-[#ff4332]" />
+                </div>
+              </div>
+            }
+            tone="bg-white"
+          />
+          <FeaturePanel
+            title="Answers stay focused"
+            copy="No confident guesswork when the database has no good match."
+            body={
+              <div className={`${ink} bg-white p-4`} data-ui>
+                <span className="text-[13px] font-extrabold">
+                  Retrieval confidence
+                </span>
+                <strong className="mt-3 block text-[21px] leading-none">
+                  Not enough evidence
+                </strong>
+                <p className="mt-3 text-sm">
+                  Try adding the constraint or a sample input.
+                </p>
+              </div>
+            }
+            tone="bg-black text-white"
+          />
+          <FeaturePanel
+            title="Practice has a next page"
+            copy="Recommendations follow the patterns where you need more reps."
+            body={
+              <div className={`${ink} bg-white p-4`} data-ui>
+                <span className="text-[13px] font-extrabold">
+                  Recommended next
+                </span>
+                <strong className="mt-3 block text-[21px] leading-none">
+                  Minimum Window Substring
+                </strong>
+                <p className="mt-3 text-sm">Pattern match · Medium</p>
+              </div>
+            }
+            tone="bg-[#ffed00]"
+          />
         </div>
       </section>
-
-      <section className="forge-proof" id="verify" aria-labelledby="proof-title">
-        <div className="proof-tile proof-tile--feature"><h2 id="proof-title">Built around the hard parts</h2><p>Good DSA practice has friction. The product should make that friction legible, not hide it.</p></div>
-        <div className="proof-tile"><strong>Grounded</strong><span>answers tied to source chunks</span></div>
-        <div className="proof-tile"><strong>Progressive</strong><span>help that waits for your next ask</span></div>
-        <div className="proof-tile"><strong>Verified</strong><span>Python checked against test cases</span></div>
-        <div className="proof-tile"><strong>Personal</strong><span>practice shaped by weak patterns</span></div>
-        <div className="proof-tile"><strong>Measured</strong><span>retrieval, latency, cost, and quality</span></div>
+      <section
+        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-black p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] text-white ${shadow} sm:w-[calc(100%-32px)]`}
+        id="how-it-works"
+        aria-labelledby="how-title"
+      >
+        <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
+          <h2
+            id="how-title"
+            className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+          >
+            From stuck to solved
+          </h2>
+          <p className="m-0 max-w-[34ch] text-[19px] font-bold leading-snug">
+            The loop is deliberately small: find the shape, take a hint, try the
+            code, learn from the result.
+          </p>
+        </div>
+        <div className="grid gap-1 md:grid-cols-2 lg:grid-cols-4" data-ui>
+          <div className="min-h-40 bg-[#ffed00] p-6 text-black">
+            <strong className="text-3xl">Find</strong>
+            <p>Search the problem by meaning and words.</p>
+          </div>
+          <div className="min-h-40 bg-[#fff5d6] p-6 text-black">
+            <strong className="text-3xl">Think</strong>
+            <p>Climb the hint ladder without skipping the work.</p>
+          </div>
+          <div className="min-h-40 bg-[#d4bdff] p-6 text-black">
+            <strong className="text-3xl">Try</strong>
+            <p>Write the approach in your own editor.</p>
+          </div>
+          <div className="min-h-40 bg-[#ff4332] p-6 text-black">
+            <strong className="text-3xl">Verify</strong>
+            <p>Run it on cases before you trust it.</p>
+          </div>
+        </div>
       </section>
-
-      <section className="forge-cta" aria-labelledby="cta-title"><div className="cta-tile cta-tile--field" aria-hidden="true" /><div className="cta-tile cta-tile--main"><h2 id="cta-title">Start with the problem you have</h2><p>Bring the question you cannot quite name. DSA Forge will help you find the next useful move.</p><a className="forge-button forge-button--dark" href="/sign-in">Start solving <span aria-hidden="true">→</span></a></div><div className="cta-tile cta-tile--paper" aria-hidden="true"><span>?</span></div></section>
-
-      <footer className="forge-footer"><div className="forge-footer__wordmark" aria-label="DSA Forge">FORGE</div><div className="forge-footer__links"><div><a href="#search">Search</a><a href="#hints">Hints</a></div><div><a href="#verify">Verification</a><a href="#practice">Practice</a></div><div><a href="/sign-in">Sign in</a><a href="/dashboard">Dashboard</a></div></div><div className="forge-footer__base"><span>© 2026 DSA Forge</span><span>Built for better attempts.</span></div></footer>
+      <section
+        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-2 gap-2 py-[clamp(72px,10vw,140px)] sm:w-[calc(100%-32px)] md:grid-cols-[2fr_1fr_1fr]"
+        id="verify"
+        aria-labelledby="proof-title"
+      >
+        <div
+          className={`${ink} col-span-2 flex min-h-72 flex-col justify-between bg-[#ffed00] p-4 sm:p-6 ${smallShadow} md:col-span-1 md:row-span-2`}
+        >
+          <h2
+            id="proof-title"
+            className="max-w-[8ch] text-[clamp(2.8rem,5vw,5.7rem)] font-extrabold leading-[.86] tracking-[-.07em]"
+          >
+            Built around the hard parts
+          </h2>
+          <p className="max-w-[31ch] font-bold">
+            Good DSA practice has friction. The product should make that
+            friction legible, not hide it.
+          </p>
+        </div>
+        {[
+          ["Grounded", "answers tied to source chunks"],
+          ["Progressive", "help that waits for your next ask"],
+          ["Verified", "Python checked against test cases"],
+          ["Personal", "practice shaped by weak patterns"],
+          ["Measured", "retrieval, latency, cost, and quality"],
+        ].map(([title, copy]) => (
+          <div
+            className={`${ink} flex min-h-40 flex-col justify-between bg-white p-4 sm:min-h-48 sm:p-6 ${smallShadow}`}
+            key={title}
+          >
+            <strong className="text-[clamp(1.7rem,2.8vw,2.8rem)] leading-none tracking-[-.05em]">
+              {title}
+            </strong>
+            <span className="max-w-[18ch] font-bold">{copy}</span>
+          </div>
+        ))}
+      </section>
+      <section
+        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-2 gap-2 pb-2 sm:w-[calc(100%-32px)] md:grid-cols-[1fr_minmax(0,2.6fr)_1fr]"
+        aria-labelledby="cta-title"
+      >
+        <div
+          className={`${ink} min-h-[120px] bg-[#d4bdff] ${shadow} md:min-h-80`}
+          aria-hidden="true"
+        />
+        <div
+          className={`${ink} col-span-2 flex min-h-[330px] flex-col items-start justify-center gap-6 bg-[#ff4332] p-[clamp(24px,5vw,64px)] ${shadow} md:col-span-1 md:min-h-80`}
+        >
+          <h2
+            id="cta-title"
+            className="max-w-[9ch] text-[clamp(2.8rem,5vw,5.8rem)] font-extrabold leading-[.86] tracking-[-.07em]"
+          >
+            Start with the problem you have
+          </h2>
+          <p className="m-0 max-w-[37ch] font-bold">
+            Bring the question you cannot quite name. DSA Forge will help you
+            find the next useful move.
+          </p>
+          <Link className={`${button} bg-black text-white`} href="/sign-in">
+            Start solving <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        <div
+          className={`${ink} grid min-h-[120px] place-items-center bg-white ${shadow} md:min-h-80`}
+          aria-hidden="true"
+        >
+          <span className="text-[12rem] font-extrabold leading-none tracking-[-.12em]">
+            ?
+          </span>
+        </div>
+      </section>
+      <footer className="mx-auto w-[calc(100%-16px)] max-w-[1440px] px-0 pb-6 pt-2 sm:w-[calc(100%-32px)]">
+        <div className="min-h-[clamp(170px,24vw,330px)] text-[clamp(4rem,19vw,15rem)] font-extrabold leading-[.75] tracking-[-.1em]">
+          FORGE
+        </div>
+        <div className="grid grid-cols-2 gap-6 pb-6 pt-[42px] font-extrabold md:grid-cols-3">
+          <div className="grid gap-2">
+            <a href="#search">Search</a>
+            <a href="#hints">Hints</a>
+          </div>
+          <div className="grid gap-2">
+            <a href="#verify">Verification</a>
+            <a href="#practice">Practice</a>
+          </div>
+          <div className="grid gap-2">
+            <Link href="/sign-in">Sign in</Link>
+            <Link href="/dashboard">Dashboard</Link>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 border-t-[3px] border-black pt-5 text-sm font-bold md:flex-row md:justify-between">
+          <span>© 2026 DSA Forge</span>
+          <span>Built for better attempts.</span>
+        </div>
+      </footer>
     </main>
   );
 }

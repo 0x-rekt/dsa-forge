@@ -12,6 +12,9 @@
     "db:down": "docker compose down",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:search-index": "node --import tsx scripts/build-search-index.ts",
+    "db:embeddings": "node --import tsx scripts/generate-embeddings.ts",
+    "db:seed": "node --import tsx scripts/seed-dataset.ts",
     "db:studio": "prisma studio",
     "auth:generate": "auth generate"
   },
@@ -40,6 +43,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "hyparquet": "^1.32.0",
     "prisma": "7.10.0",
     "tsx": "latest",
     "tailwindcss": "^4",
