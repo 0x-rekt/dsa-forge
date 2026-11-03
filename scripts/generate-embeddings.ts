@@ -1,54 +1,53 @@
+import { GoogleGenAI } from "@google/genai";
 import { prisma } from "../lib/prisma";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const model = process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001";
 const dimensions = 768;
 const batchSize = Number(process.env.GEMINI_EMBEDDING_BATCH_SIZE ?? 50);
-const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:batchEmbedContents`;
 
 type Chunk = { id: string; content: string };
-type EmbeddingResponse = { embeddings?: Array<{ values?: number[] }> };
 
 function vectorLiteral(values: number[]) {
-  if (values.length !== dimensions || values.some((value) => !Number.isFinite(value))) {
-    throw new Error(`Expected ${dimensions} finite embedding values, received ${values.length}`);
+  if (
+    values.length !== dimensions ||
+    values.some((value) => !Number.isFinite(value))
+  ) {
+    throw new Error(
+      `Expected ${dimensions} finite embedding values, received ${values.length}`,
+    );
   }
   return `[${values.join(",")}]`;
 }
 
 async function embedBatch(chunks: Chunk[]) {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey!,
+  const ai = new GoogleGenAI({ apiKey: apiKey! });
+  const response = await ai.models.embedContent({
+    model,
+    contents: chunks.map((chunk) => chunk.content),
+    config: {
+      taskType: "RETRIEVAL_DOCUMENT",
+      outputDimensionality: dimensions,
     },
-    body: JSON.stringify({
-      requests: chunks.map((chunk) => ({
-        model: `models/${model}`,
-        content: { parts: [{ text: chunk.content }] },
-        taskType: "RETRIEVAL_DOCUMENT",
-        outputDimensionality: dimensions,
-      })),
-    }),
   });
 
-  const body = await response.json() as EmbeddingResponse & { error?: { message?: string } };
-  if (!response.ok) {
-    throw new Error(`Gemini embedding request failed (${response.status}): ${body.error?.message ?? "unknown error"}`);
+  if (!response.embeddings || response.embeddings.length !== chunks.length) {
+    throw new Error(
+      `Gemini returned ${response.embeddings?.length ?? 0} embeddings for ${chunks.length} chunks`,
+    );
   }
 
-  if (!body.embeddings || body.embeddings.length !== chunks.length) {
-    throw new Error(`Gemini returned ${body.embeddings?.length ?? 0} embeddings for ${chunks.length} chunks`);
-  }
-
-  return body.embeddings.map((embedding) => vectorLiteral(embedding.values ?? []));
+  return response.embeddings.map((embedding) =>
+    vectorLiteral(embedding.values ?? []),
+  );
 }
 
 async function main() {
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
   if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 100) {
-    throw new Error("GEMINI_EMBEDDING_BATCH_SIZE must be an integer between 1 and 100");
+    throw new Error(
+      "GEMINI_EMBEDDING_BATCH_SIZE must be an integer between 1 and 100",
+    );
   }
 
   const chunks = await prisma.$queryRaw<Chunk[]>`
@@ -72,7 +71,9 @@ async function main() {
       } catch (error) {
         lastError = error;
         if (attempt === 2) throw lastError;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * 2 ** attempt),
+        );
       }
     }
 
@@ -84,7 +85,9 @@ async function main() {
       `;
     }
 
-    console.log(`Embedded ${Math.min(offset + batch.length, chunks.length)} / ${chunks.length} chunks.`);
+    console.log(
+      `Embedded ${Math.min(offset + batch.length, chunks.length)} / ${chunks.length} chunks.`,
+    );
   }
 
   console.log("Embedding generation complete.");

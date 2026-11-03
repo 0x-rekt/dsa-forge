@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { DisplayResult } from "./types";
 
 export function RetrievalBoard({ items }: { items: DisplayResult[] }) {
@@ -15,22 +16,34 @@ export function RetrievalBoard({ items }: { items: DisplayResult[] }) {
       </div>
       <div className="grid gap-1">
         {items.map((item, index) => (
-          <button
-            className={`grid min-h-[64px] grid-cols-[1fr_auto] items-center gap-2 px-3.5 py-3.5 text-left font-sans sm:min-h-[74px] sm:grid-cols-[1fr_180px_120px] sm:gap-4 sm:px-5 sm:py-4 ${selectedIndex === index ? "bg-[#ffed00] text-black" : "bg-[#252525] text-white hover:bg-[#3b3b3b]"}`}
-            key={item.title}
-            onClick={() => setActive(index)}
-            type="button"
+          <div
+            className={`grid min-h-[64px] grid-cols-[1fr_auto] items-center gap-2 px-3.5 py-3.5 text-left font-sans sm:min-h-[74px] sm:grid-cols-[1fr_180px_120px_auto] sm:gap-4 sm:px-5 sm:py-4 ${selectedIndex === index ? "bg-[#ffed00] text-black" : "bg-[#252525] text-white"}`}
+            key={item.id}
           >
-            <span className="text-[clamp(1.05rem,2vw,1.5rem)] font-extrabold leading-tight">
-              {item.title}
-            </span>
+            <button
+              className="min-w-0 text-left hover:underline focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-2"
+              onClick={() => setActive(index)}
+              type="button"
+            >
+              <span className="text-[clamp(1.05rem,2vw,1.5rem)] font-extrabold leading-tight">
+                {item.title}
+              </span>
+            </button>
             <span className="hidden text-sm font-bold sm:block">
               {item.pattern}
             </span>
             <span className="bg-[#ff4332] px-2 py-1 text-sm font-bold text-black sm:justify-self-end">
               {item.difficulty}
             </span>
-          </button>
+            {item.slug ? (
+              <Link
+                className="font-extrabold underline decoration-2 underline-offset-4"
+                href={`/problems/${item.slug}`}
+              >
+                Open
+              </Link>
+            ) : null}
+          </div>
         ))}
       </div>
       <div className="grid gap-6 bg-[#ff4332] p-5 text-black md:grid-cols-[.7fr_1.3fr]">

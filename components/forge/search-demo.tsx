@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import type { DisplayResult } from "./types";
 
 type ApiResult = {
+  chunkId: string;
+  slug: string;
   title: string;
   difficulty: string;
   tags: string[];
@@ -15,6 +17,7 @@ type ApiResult = {
 
 const fallbackResults: DisplayResult[] = [
   {
+    id: "fallback-longest-substring",
     title: "Longest Substring Without Repeating Characters",
     pattern: "sliding window",
     difficulty: "Medium",
@@ -22,6 +25,7 @@ const fallbackResults: DisplayResult[] = [
       "Keep a moving window of unique characters. When a repeat appears, move the left edge past its previous position.",
   },
   {
+    id: "fallback-two-sum",
     title: "Two Sum",
     pattern: "hash map",
     difficulty: "Easy",
@@ -29,6 +33,7 @@ const fallbackResults: DisplayResult[] = [
       "Store values already seen and check whether the complement exists before adding the current number.",
   },
   {
+    id: "fallback-number-of-islands",
     title: "Number of Islands",
     pattern: "graph traversal",
     difficulty: "Medium",
@@ -72,6 +77,8 @@ export function SearchDemo({
       if (!response.ok)
         throw new Error(payload.error ?? "Search is temporarily unavailable.");
       const next = (payload.results ?? []).map((item) => ({
+        id: item.chunkId,
+        slug: item.slug,
         title: item.title,
         pattern: item.tags[0] ?? "Pattern match",
         difficulty: item.difficulty,
@@ -102,7 +109,7 @@ export function SearchDemo({
           : "Ready";
   return (
     <div
-      className="w-full border-4 border-black bg-[#fff5d6] text-black shadow-[5px_5px_0_#000]"
+      className="w-full border-4 border-black bg-[#fff5d6] text-black"
       data-ui
     >
       <div className="flex justify-between border-x-0 border-t-0 border-b-4 border-black px-4 py-4 text-[13px] font-extrabold sm:px-5">
@@ -166,6 +173,14 @@ export function SearchDemo({
               <p className="border-t-2 border-black pt-3 text-[13px] font-bold">
                 {result.whyMatched}
               </p>
+            )}
+            {results.length > 1 && (
+              <a
+                className="w-fit text-[13px] font-extrabold underline decoration-2 underline-offset-4"
+                href="#retrieval-results"
+              >
+                See all {results.length} matching chunks below ↘
+              </a>
             )}
           </>
         )}

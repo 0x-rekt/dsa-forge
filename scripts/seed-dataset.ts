@@ -8,6 +8,9 @@ type DatasetRow = {
   constraints?: unknown;
   difficulty?: unknown;
   tags?: unknown;
+  approach?: unknown;
+  explanation?: unknown;
+  complexity?: unknown;
   test_cases?: unknown;
   solution?: unknown;
 };
@@ -101,6 +104,21 @@ async function seedRow(row: DatasetRow) {
   await prisma.problemChunk.deleteMany({ where: { problemId: problem.id } });
   const chunks = [
     { section: "statement" as const, content: chunkContent("Problem statement", statement) },
+    {
+      section: "approach" as const,
+      content: chunkContent(
+        "Approach",
+        row.approach ?? row.explanation ??
+          `Use the ${asTags(row.tags).join(", ") || "problem-solving"} pattern to transform the problem statement into a solution.`,
+      ),
+    },
+    {
+      section: "complexity" as const,
+      content: chunkContent(
+        "Complexity",
+        row.complexity ?? "Complexity depends on the constraints and the chosen implementation.",
+      ),
+    },
     { section: "editorial" as const, content: chunkContent("Constraints", row.constraints) },
     { section: "code" as const, content: chunkContent("Reference solution", row.solution) },
   ].filter((chunk) => chunk.content);

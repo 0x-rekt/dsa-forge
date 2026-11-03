@@ -113,21 +113,23 @@ export default function Home() {
       <section
         className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-white p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
         id="practice"
-        aria-labelledby="showcase-title"
+        aria-label="Search retrieval results"
       >
-        <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
-          <h2
-            id="showcase-title"
-            className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
-          >
-            Search that names the pattern
-          </h2>
-          <p className="m-0 max-w-[34ch] text-[19px] font-bold leading-snug">
-            Describe the problem in your own words. Hybrid search combines
-            meaning and keywords, then shows why each result belongs.
-          </p>
+        <div id="retrieval-results" className="scroll-mt-8">
+          <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
+            <h2
+              id="showcase-title"
+              className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+            >
+              Search that names the pattern
+            </h2>
+            <p className="m-0 max-w-[34ch] text-[19px] font-bold leading-snug">
+              Describe the problem in your own words. Hybrid search combines
+              meaning and keywords, then shows why each result belongs.
+            </p>
+          </div>
+          <RetrievalBoard items={liveResults} />
         </div>
-        <RetrievalBoard items={liveResults} />
       </section>
       <section
         className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
