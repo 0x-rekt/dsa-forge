@@ -13,6 +13,7 @@ export type TutorCitation = {
   slug: string;
   section: string;
   excerpt: string;
+  content: string;
 };
 
 export type TutorContext = {
@@ -84,6 +85,7 @@ export async function getTutorContext(
     slug: problem.slug,
     section: chunk.section,
     excerpt: excerpt(chunk.content),
+    content: chunk.content,
   }));
 
   const promptContext = chunks

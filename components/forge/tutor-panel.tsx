@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -20,6 +20,12 @@ type Citation = {
   slug: string;
   section: string;
   excerpt: string;
+  content: string;
+};
+
+type HintRecord = {
+  answer: string;
+  citations: Citation[];
 };
 
 type TutorPanelProps = {
@@ -29,6 +35,72 @@ type TutorPanelProps = {
   slug: string;
   title: string;
 };
+
+function renderInline(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code className="bg-[#eeeae5] px-1 py-0.5 text-[0.9em]" key={index}>
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  const lines = content.split(/\r?\n/);
+  const blocks: ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    blocks.push(
+      <ul className="my-3 list-disc space-y-2 pl-5" key={`list-${blocks.length}`}>
+        {listItems.map((item, index) => (
+          <li key={`${item}-${index}`}>{renderInline(item)}</li>
+        ))}
+      </ul>,
+    );
+    listItems = [];
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList();
+      return;
+    }
+    const listMatch = trimmed.match(/^[-*]\s+(.+)/);
+    if (listMatch) {
+      listItems.push(listMatch[1]);
+      return;
+    }
+    flushList();
+    const headingMatch = trimmed.match(/^#{1,3}\s+(.+)/);
+    if (headingMatch) {
+      blocks.push(
+        <h4 className="mt-4 font-extrabold first:mt-0" key={`heading-${index}`}>
+          {renderInline(headingMatch[1])}
+        </h4>,
+      );
+      return;
+    }
+    blocks.push(
+      <p className="my-3 first:mt-0 last:mb-0" key={`paragraph-${index}`}>
+        {renderInline(trimmed)}
+      </p>,
+    );
+  });
+  flushList();
+
+  return <div>{blocks}</div>;
+}
 
 function parseEvent(block: string) {
   const event = block.match(/^event:\s*(.+)$/m)?.[1]?.trim() ?? "message";
@@ -56,8 +128,13 @@ export function TutorPanel({
     onOpenChange?.(nextOpen);
   };
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [citations, setCitations] = useState<Citation[]>([]);
+  const [tutorAnswer, setTutorAnswer] = useState("");
+  const [tutorCitations, setTutorCitations] = useState<Citation[]>([]);
+  const [hintAnswer, setHintAnswer] = useState("");
+  const [hintCitations, setHintCitations] = useState<Citation[]>([]);
+  const [hintHistory, setHintHistory] = useState<Record<number, HintRecord>>(
+    {},
+  );
   const [hintLevel, setHintLevel] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
@@ -72,8 +149,8 @@ export function TutorPanel({
     setLoading(true);
     setError("");
     setAuthRequired(false);
-    setAnswer("");
-    setCitations([]);
+    setTutorAnswer("");
+    setTutorCitations([]);
 
     try {
       const response = await fetch("/api/tutor/ask", {
@@ -103,9 +180,9 @@ export function TutorPanel({
           const parsed = parseEvent(block);
           if (!parsed) continue;
           if (parsed.event === "start") {
-            setCitations((parsed.data.citations as Citation[]) ?? []);
+            setTutorCitations((parsed.data.citations as Citation[]) ?? []);
           } else if (parsed.event === "token") {
-            setAnswer((current) => `${current}${String(parsed.data.text ?? "")}`);
+            setTutorAnswer((current) => `${current}${String(parsed.data.text ?? "")}`);
           } else if (parsed.event === "error") {
             throw new Error(String(parsed.data.error ?? "Tutor stream failed."));
           }
@@ -122,6 +199,18 @@ export function TutorPanel({
 
   async function getHint(action: "next" | "previous") {
     if (hintLoading) return;
+    const targetLevel =
+      action === "previous"
+        ? Math.max(0, hintLevel - 1)
+        : Math.min(4, Math.max(1, hintLevel + 1));
+
+    if (targetLevel > 0 && hintHistory[targetLevel]) {
+      setHintLevel(targetLevel);
+      setHintAnswer(hintHistory[targetLevel].answer);
+      setHintCitations(hintHistory[targetLevel].citations);
+      return;
+    }
+
     setHintLoading(true);
     setError("");
     setAuthRequired(false);
@@ -154,8 +243,17 @@ export function TutorPanel({
       }
 
       setHintLevel(body?.level ?? 0);
-      setAnswer(body?.hint ?? "");
-      setCitations(body?.citations ?? []);
+      setHintAnswer(body?.hint ?? "");
+      setHintCitations(body?.citations ?? []);
+      if (body?.level && body.hint) {
+        setHintHistory((current) => ({
+          ...current,
+          [body.level!]: {
+            answer: body.hint!,
+            citations: body.citations ?? [],
+          },
+        }));
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Hint request failed.");
     } finally {
@@ -264,13 +362,38 @@ export function TutorPanel({
                 </Button>
               </div>
 
-              {answer ? (
-                <div className="mt-8 bg-white p-5" aria-live="polite">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="font-extrabold">
-                      {hintLevel ? `Hint level ${hintLevel} of 4` : "Tutor response"}
-                    </h3>
-                    {hintLevel ? (
+              {tutorAnswer ? (
+                  <div className="mt-8 bg-white p-5" aria-live="polite">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="font-extrabold">Tutor response</h3>
+                    </div>
+                    <div className="mt-4 text-[15px] leading-[1.7]">
+                      <MarkdownContent content={tutorAnswer} />
+                    </div>
+                  </div>
+                ) : null}
+
+                {tutorCitations.length ? (
+                  <div className="mt-6">
+                    <h3 className="font-extrabold">Tutor sources</h3>
+                    <ul className="mt-2 grid gap-2 text-sm">
+                      {tutorCitations.map((citation) => (
+                        <li key={citation.id}>
+                          <span className="font-bold">
+                            [{citation.label}] {citation.section}
+                          </span>
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                            {citation.content}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {hintAnswer ? (
+                  <div className="mt-8 bg-white p-5" aria-live="polite">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="font-extrabold">Hint level {hintLevel} of 4</h3>
                       <div className="flex gap-3">
                         <button
                           className="font-extrabold underline decoration-2 underline-offset-4 disabled:opacity-40"
@@ -289,30 +412,30 @@ export function TutorPanel({
                           Next
                         </button>
                       </div>
-                    ) : null}
+                    </div>
+                    <div className="mt-4 text-[15px] leading-[1.7]">
+                      <MarkdownContent content={hintAnswer} />
+                    </div>
                   </div>
-                  <p className="mt-4 whitespace-pre-wrap text-[15px] leading-[1.7]">
-                    {answer}
-                  </p>
-                </div>
-              ) : null}
+                ) : null}
 
-              {citations.length ? (
-                <div className="mt-6">
-                  <h3 className="font-extrabold">Sources used</h3>
-                  <ul className="mt-2 grid gap-2 text-sm">
-                    {citations.map((citation) => (
-                      <li key={citation.id}>
-                        <span className="font-bold">
-                          [{citation.label}] {citation.section}
-                        </span>
-                        {" — "}
-                        {citation.excerpt}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+                {hintCitations.length ? (
+                  <div className="mt-6">
+                    <h3 className="font-extrabold">Hint sources</h3>
+                    <ul className="mt-2 grid gap-2 text-sm">
+                      {hintCitations.map((citation) => (
+                        <li key={citation.id}>
+                          <span className="font-bold">
+                            [{citation.label}] {citation.section}
+                          </span>
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                            {citation.content}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
               {error ? (
                 <div className="mt-6 border-2 border-[#ff4332] bg-white p-4 text-sm font-bold" role="alert">

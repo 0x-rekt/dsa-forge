@@ -10,6 +10,11 @@ import {
 
 const MIN_LEVEL = 1;
 const MAX_LEVEL = 4;
+const HINT_CACHE_DAYS = 30;
+
+function hintCacheKey(level: number) {
+  return `__hint_level_${level}__`;
+}
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -107,6 +112,59 @@ export async function POST(request: Request) {
       });
     }
 
+    const cacheKey = hintCacheKey(nextLevel);
+    const cachedHint = await prisma.answerCache.findUnique({
+      where: {
+        problemId_hintLevel_queryText: {
+          problemId: context.problem.id,
+          hintLevel: nextLevel,
+          queryText: cacheKey,
+        },
+      },
+      select: {
+        answer: true,
+        expiresAt: true,
+      },
+    });
+
+    if (cachedHint && cachedHint.expiresAt > new Date()) {
+      await prisma.hintState.upsert({
+        where: {
+          userId_problemId: {
+            userId: session.user.id,
+            problemId: context.problem.id,
+          },
+        },
+        update: { currentLevel: nextLevel },
+        create: {
+          userId: session.user.id,
+          problemId: context.problem.id,
+          currentLevel: nextLevel,
+        },
+      });
+
+      return Response.json({
+        problem: context.problem,
+        level: nextLevel,
+        maxLevel: MAX_LEVEL,
+        hint: cachedHint.answer,
+        citations: context.sources,
+        cached: true,
+      });
+    }
+
+    if (cachedHint) {
+      await prisma.answerCache.delete({
+        where: {
+          problemId_hintLevel_queryText: {
+            problemId: context.problem.id,
+            hintLevel: nextLevel,
+            queryText: cacheKey,
+          },
+        },
+      });
+    }
+
     const apiKey = requireTutorApiKey();
     const response = await createTutorModel(apiKey).models.generateContent({
       model: process.env.GEMINI_TUTOR_MODEL ?? "gemini-2.5-flash",
@@ -132,12 +190,38 @@ export async function POST(request: Request) {
       },
     });
 
+    await prisma.answerCache.upsert({
+      where: {
+        problemId_hintLevel_queryText: {
+          problemId: context.problem.id,
+          hintLevel: nextLevel,
+          queryText: cacheKey,
+        },
+      },
+      update: {
+        answer: hint,
+        expiresAt: new Date(
+          Date.now() + HINT_CACHE_DAYS * 24 * 60 * 60 * 1000,
+        ),
+      },
+      create: {
+        problemId: context.problem.id,
+        hintLevel: nextLevel,
+        queryText: cacheKey,
+        answer: hint,
+        expiresAt: new Date(
+          Date.now() + HINT_CACHE_DAYS * 24 * 60 * 60 * 1000,
+        ),
+      },
+    });
+
     return Response.json({
       problem: context.problem,
       level: nextLevel,
       maxLevel: MAX_LEVEL,
       hint,
       citations: context.sources,
+      cached: false,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "GEMINI_API_KEY is not configured.") {
