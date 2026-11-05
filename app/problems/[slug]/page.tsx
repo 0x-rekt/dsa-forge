@@ -85,7 +85,7 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
             </div>
             <div className="flex flex-wrap gap-2 md:justify-end">
               <ProblemTutor slug={problem.slug} title={problem.title} />
-              <StartPracticingLink />
+              <StartPracticingLink slug={problem.slug} />
             </div>
           </aside>
         </header>

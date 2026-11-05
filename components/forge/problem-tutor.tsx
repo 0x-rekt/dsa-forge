@@ -32,11 +32,11 @@ export function ProblemTutor({ slug, title }: ProblemTutorProps) {
   );
 }
 
-export function StartPracticingLink() {
+export function StartPracticingLink({ slug }: { slug: string }) {
   return (
     <Link
       className="inline-flex min-h-11 items-center justify-center border-2 border-black bg-white px-4 font-extrabold transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
-      href="/dashboard"
+      href={slug ? `/problems/${slug}/practice` : "/dashboard"}
     >
       Start practicing
     </Link>

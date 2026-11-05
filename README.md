@@ -31,5 +31,39 @@ It reports Top-1 accuracy, Recall@5, Recall@8, and MRR for keyword-only, vector-
 
 - `POST /api/search` — hybrid problem search
 - `GET /api/problems/:slug` — problem details, public tests, chunks, and similar problems
+- `POST /api/code/run` — authenticated Python execution against the problem's database test cases
 
 Similarity combines shared pattern tags with statement-chunk embedding distance.
+
+## Code execution
+
+The first execution API supports Python programs that read one test case from
+standard input and print one answer to standard output. The request must include
+the problem slug:
+
+```json
+{
+  "slug": "two-sum",
+  "language": "python",
+  "code": "import sys, json\nvalue = json.load(sys.stdin)\nprint(json.dumps(value))"
+}
+```
+
+The API never accepts client-supplied tests. It loads the problem's public and
+hidden test cases from PostgreSQL, runs each case in an isolated Vercel Sandbox
+with networking disabled, and stores the result as an `Attempt`. Hidden inputs
+and expected outputs are not returned to the browser.
+
+Local development needs Vercel Sandbox credentials. Link the repository to a
+Vercel project and pull development variables without committing the resulting
+file:
+
+```bash
+npx vercel link
+npx vercel env pull .env.local
+```
+
+Production deployments on Vercel use the project's OIDC credentials
+automatically. The endpoint currently requires an authenticated user, accepts
+Python only, limits submissions to 100,000 characters, and applies a
+three-second timeout per test case.
