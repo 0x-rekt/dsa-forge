@@ -3,9 +3,12 @@
 import Editor from "@monaco-editor/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getPythonProblemContract } from "@/lib/problem-contract";
 
 type PracticeEditorProps = {
   slug: string;
+  tags: string[];
+  sampleInput?: string;
 };
 
 type RunResult = {
@@ -18,21 +21,9 @@ type RunResult = {
   executionMs: number;
 };
 
-const starterCode = `def solve(data):
-    nums = data["nums"]
-    target = data["target"]
-    seen = {}
-
-    for index, number in enumerate(nums):
-        complement = target - number
-        if complement in seen:
-            return [seen[complement], index]
-        seen[number] = index
-
-    return None
-`;
-
-export function PracticeEditor({ slug }: PracticeEditorProps) {
+export function PracticeEditor({ slug, tags, sampleInput }: PracticeEditorProps) {
+  const contract = getPythonProblemContract({ tags, sampleInput });
+  const starterCode = contract.starterCode;
   const [code, setCode] = useState(starterCode);
   const [results, setResults] = useState<RunResult[]>([]);
   const [verdict, setVerdict] = useState<string | null>(null);
@@ -76,7 +67,10 @@ export function PracticeEditor({ slug }: PracticeEditorProps) {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#4a4a4a] px-5 py-4">
           <div>
             <h2 id="editor-title" className="text-xl font-extrabold">Python editor</h2>
-            <p className="mt-1 text-sm text-[#c7c7c7]">Implement solve(data) and return the answer.</p>
+            <p className="mt-1 text-sm text-[#c7c7c7]">
+              Implement Solution.{contract.methodName}(data) and return the answer.
+            </p>
+            <p className="mt-2 max-w-[70ch] text-xs text-[#a9a9a9]">{contract.structure}</p>
           </div>
           <span className="bg-[#ff4332] px-3 py-1 text-sm font-extrabold text-black">Python</span>
         </div>

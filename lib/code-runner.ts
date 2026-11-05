@@ -1,4 +1,5 @@
 import { Sandbox } from "@vercel/sandbox";
+import { getPythonProblemContract } from "@/lib/problem-contract";
 
 const SANDBOX_TIMEOUT_MS = 30_000;
 const TEST_TIMEOUT_MS = 3_000;
@@ -40,12 +41,15 @@ function isTimeout(error: unknown) {
 export async function runPythonCode(
   code: string,
   tests: CodeTest[],
+  tags: string[],
+  sampleInput?: string,
 ): Promise<{
   verdict: "passed" | "failed" | "error" | "timeout";
   results: CodeRunResult[];
   executionMs: number;
 }> {
   const startedAt = Date.now();
+  const contract = getPythonProblemContract({ tags, sampleInput });
   const sandbox = await Sandbox.create({
     image: "vercel/sandbox/python:3.14",
     networkPolicy: "deny-all",
@@ -62,7 +66,15 @@ export async function runPythonCode(
       {
         path: "runner.py",
         content: Buffer.from(
-          "import json\nimport solution\n\nwith open(\"input.json\", encoding=\"utf-8\") as input_file:\n    data = json.load(input_file)\n\nresult = solution.solve(data)\nprint(json.dumps(result, separators=(\",\", \":\")))\n",
+          `import json
+import solution
+
+with open("input.json", encoding="utf-8") as input_file:
+    data = json.load(input_file)
+
+${contract.invocation}
+print(json.dumps(result, separators=(",", ":")))
+`,
           "utf8",
         ),
       },

@@ -21,6 +21,7 @@ export default async function PracticePage({ params }: PracticePageProps) {
       statement: true,
       difficulty: true,
       constraints: true,
+      patterns: { select: { pattern: { select: { name: true } } } },
       testCases: {
         where: { isHidden: false },
         select: { id: true, input: true, expectedOutput: true },
@@ -92,7 +93,11 @@ export default async function PracticePage({ params }: PracticePageProps) {
             </section>
           </aside>
           <div className="min-w-0 self-start">
-            <PracticeEditor slug={problem.slug} />
+            <PracticeEditor
+              slug={problem.slug}
+              sampleInput={problem.testCases[0]?.input}
+              tags={problem.patterns.map(({ pattern }) => pattern.name)}
+            />
           </div>
         </div>
       </div>

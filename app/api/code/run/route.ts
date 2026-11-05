@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       where: { slug },
       select: {
         id: true,
+        patterns: { select: { pattern: { select: { name: true } } } },
         testCases: {
           select: {
             id: true,
@@ -84,7 +85,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const run = await runPythonCode(code, problem.testCases);
+    const run = await runPythonCode(
+      code,
+      problem.testCases,
+      problem.patterns.map(({ pattern }) => pattern.name),
+      problem.testCases[0]?.input,
+    );
     await prisma.attempt.create({
       data: {
         userId: session.user.id,
