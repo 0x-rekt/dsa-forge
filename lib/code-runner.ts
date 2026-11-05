@@ -59,6 +59,13 @@ export async function runPythonCode(
         path: "solution.py",
         content: Buffer.from(code, "utf8"),
       },
+      {
+        path: "runner.py",
+        content: Buffer.from(
+          "import json\nimport solution\n\nwith open(\"input.json\", encoding=\"utf-8\") as input_file:\n    data = json.load(input_file)\n\nresult = solution.solve(data)\nprint(json.dumps(result, separators=(\",\", \":\")))\n",
+          "utf8",
+        ),
+      },
     ]);
 
     const results: CodeRunResult[] = [];
@@ -75,7 +82,7 @@ export async function runPythonCode(
         ]);
         const command = await sandbox.runCommand({
           cmd: "bash",
-          args: ["-c", "python3 solution.py < input.json"],
+          args: ["-c", "python3 runner.py"],
           timeoutMs: TEST_TIMEOUT_MS,
         });
         const actual = (await command.stdout()).trim();

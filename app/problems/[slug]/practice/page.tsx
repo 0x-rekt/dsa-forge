@@ -47,7 +47,7 @@ export default async function PracticePage({ params }: PracticePageProps) {
                 Practice {problem.title}
               </h1>
               <p className="mt-3 max-w-[65ch] text-base leading-relaxed">
-                Write a complete stdin/stdout solution, then verify it against the problem&apos;s cases.
+                Implement the required function, return the answer, then verify it against the problem&apos;s cases.
               </p>
             </div>
             <Badge>{problem.difficulty}</Badge>

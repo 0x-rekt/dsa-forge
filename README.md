@@ -37,15 +37,16 @@ Similarity combines shared pattern tags with statement-chunk embedding distance.
 
 ## Code execution
 
-The first execution API supports Python programs that read one test case from
-standard input and print one answer to standard output. The request must include
+The first execution API supports Python solutions that define `solve(data)` and
+return one answer for each JSON test case. The runner handles JSON input and
+output. The request must include
 the problem slug:
 
 ```json
 {
   "slug": "two-sum",
   "language": "python",
-  "code": "import sys, json\nvalue = json.load(sys.stdin)\nprint(json.dumps(value))"
+  "code": "def solve(data):\n    return data"
 }
 ```
 
@@ -66,4 +67,6 @@ npx vercel env pull .env.local
 Production deployments on Vercel use the project's OIDC credentials
 automatically. The endpoint currently requires an authenticated user, accepts
 Python only, limits submissions to 100,000 characters, and applies a
-three-second timeout per test case.
+three-second timeout per test case. User code must expose a callable
+`solve(data)` function; missing functions and runtime errors are reported as
+execution errors.

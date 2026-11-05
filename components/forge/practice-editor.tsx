@@ -18,22 +18,18 @@ type RunResult = {
   executionMs: number;
 };
 
-const starterCode = `import json
-import sys
+const starterCode = `def solve(data):
+    nums = data["nums"]
+    target = data["target"]
+    seen = {}
 
-data = json.load(sys.stdin)
-nums = data["nums"]
-target = data["target"]
-seen = {}
+    for index, number in enumerate(nums):
+        complement = target - number
+        if complement in seen:
+            return [seen[complement], index]
+        seen[number] = index
 
-for index, number in enumerate(nums):
-    complement = target - number
-    if complement in seen:
-        print(json.dumps([seen[complement], index]))
-        break
-    seen[number] = index
-else:
-    print("null")
+    return None
 `;
 
 export function PracticeEditor({ slug }: PracticeEditorProps) {
@@ -80,7 +76,7 @@ export function PracticeEditor({ slug }: PracticeEditorProps) {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#4a4a4a] px-5 py-4">
           <div>
             <h2 id="editor-title" className="text-xl font-extrabold">Python editor</h2>
-            <p className="mt-1 text-sm text-[#c7c7c7]">Read JSON from stdin and print JSON to stdout.</p>
+            <p className="mt-1 text-sm text-[#c7c7c7]">Implement solve(data) and return the answer.</p>
           </div>
           <span className="bg-[#ff4332] px-3 py-1 text-sm font-extrabold text-black">Python</span>
         </div>
