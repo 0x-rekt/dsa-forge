@@ -32,6 +32,7 @@ It reports Top-1 accuracy, Recall@5, Recall@8, and MRR for keyword-only, vector-
 - `POST /api/search` — hybrid problem search
 - `GET /api/problems/:slug` — problem details, public tests, chunks, and similar problems
 - `POST /api/code/run` — authenticated Python execution against the problem's database test cases
+- `POST /api/code/generate` — authenticated grounded Python generation, Sandbox verification, and up to two repair retries
 
 Similarity combines shared pattern tags with statement-chunk embedding distance.
 
@@ -56,6 +57,12 @@ The API never accepts client-supplied tests. It loads the problem's public and
 hidden test cases from PostgreSQL, runs each case in an isolated Vercel Sandbox
 with networking disabled, and stores the result as an `Attempt`. Hidden inputs
 and expected outputs are not returned to the browser.
+
+The generated-solution flow uses the indexed problem context to produce a
+`Solution.solve(data)` implementation, verifies it in the same Sandbox, and
+sends visible failures back to Gemini for up to two repair retries. Hidden
+failures are reported only as hidden failures; their inputs and outputs are
+never included in the repair prompt.
 
 Local development needs Vercel Sandbox credentials. Link the repository to a
 Vercel project and pull development variables without committing the resulting

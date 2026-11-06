@@ -29,6 +29,7 @@ export function PracticeEditor({ slug, tags, sampleInput }: PracticeEditorProps)
   const [verdict, setVerdict] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const passedCount = results.filter((result) => result.passed).length;
   const failedResults = results.filter((result) => !result.passed);
 
@@ -52,12 +53,51 @@ export function PracticeEditor({ slug, tags, sampleInput }: PracticeEditorProps)
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to run code.");
       }
+
       setVerdict(payload.verdict ?? "error");
       setResults(payload.results ?? []);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unable to run code.");
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function generateCode() {
+      setGenerating(true);
+      setError("");
+      setResults([]);
+      setVerdict(null);
+
+      try {
+        const response = await fetch("/api/code/generate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            slug,
+            request: "Generate a correct Python solution for this problem and verify it against the tests.",
+          }),
+        });
+        const payload = (await response.json()) as {
+          error?: string;
+          code?: string;
+          verdict?: string;
+          results?: RunResult[];
+          attempts?: number;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to generate code.");
+        }
+        setCode(payload.code ?? starterCode);
+        setVerdict(payload.verdict ?? "error");
+        setResults(payload.results ?? []);
+        if (payload.attempts && payload.attempts > 1 && payload.verdict !== "passed") {
+          setError(`The generated solution was retried ${payload.attempts - 1} times but still did not pass all tests.`);
+        }
+      } catch (generationError) {
+        setError(generationError instanceof Error ? generationError.message : "Unable to generate code.");
+      } finally {
+        setGenerating(false);
     }
   }
 
@@ -100,9 +140,14 @@ export function PracticeEditor({ slug, tags, sampleInput }: PracticeEditorProps)
           >
             Reset starter code
           </button>
-          <Button disabled={running} onClick={runCode} size="lg" variant="forge">
-            {running ? "Running…" : "Run code →"}
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button disabled={running || generating} onClick={runCode} size="lg" variant="forge">
+              {running ? "Running…" : "Run code →"}
+            </Button>
+            <Button disabled={running || generating} onClick={generateCode} size="lg" variant="outline">
+              {generating ? "Generating…" : "Generate verified solution"}
+            </Button>
+          </div>
         </div>
       </section>
 
