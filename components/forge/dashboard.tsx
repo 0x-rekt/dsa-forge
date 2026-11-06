@@ -113,19 +113,36 @@ export function DashboardSection({
   );
 }
 
-export function DashboardStats() {
-  const stats = [
-    { label: "Attempts", value: "0", detail: "No attempts yet" },
-    { label: "Solved", value: "0", detail: "Verified passes" },
-    { label: "Hints used", value: "0", detail: "Across all problems" },
-    { label: "Patterns tracked", value: "0", detail: "Builds from attempts" },
+export function DashboardStats({
+  stats,
+}: {
+  stats: {
+    attempts: number;
+    solved: number;
+    hintsUsed: number;
+    patternsTracked: number;
+  };
+}) {
+  const cards = [
+    { label: "Attempts", value: stats.attempts, detail: "Submitted solutions" },
+    { label: "Solved", value: stats.solved, detail: "Verified passes" },
+    {
+      label: "Hints used",
+      value: stats.hintsUsed,
+      detail: "Across submissions",
+    },
+    {
+      label: "Patterns tracked",
+      value: stats.patternsTracked,
+      detail: "Built from attempts",
+    },
   ];
   return (
     <section
       className="mx-auto mb-6 grid max-w-[1160px] grid-cols-2 border-y-2 border-black md:grid-cols-4"
       aria-label="Practice totals"
     >
-      {stats.map((stat, index) => (
+      {cards.map((stat, index) => (
         <div
           className={`grid min-h-[122px] content-center gap-1 px-5 py-4 ${index % 2 === 1 ? "border-r-0" : "border-r-2"} ${index < 2 ? "border-b-2 md:border-b-0" : ""} border-black md:border-b-0 md:border-r-2 md:last:border-r-0`}
           key={stat.label}

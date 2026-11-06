@@ -8,10 +8,7 @@ const MAX_CODE_LENGTH = 100_000;
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
-    return Response.json(
-      { error: "Sign in to run code." },
-      { status: 401 },
-    );
+    return Response.json({ error: "Sign in to run code." }, { status: 401 });
   }
 
   let body: unknown;
@@ -91,17 +88,6 @@ export async function POST(request: Request) {
       problem.patterns.map(({ pattern }) => pattern.name),
       problem.testCases[0]?.input,
     );
-    await prisma.attempt.create({
-      data: {
-        userId: session.user.id,
-        problemId: problem.id,
-        language,
-        code,
-        verdict: run.verdict,
-        executionMs: run.executionMs,
-      },
-    });
-
     return Response.json({
       language,
       verdict: run.verdict,
