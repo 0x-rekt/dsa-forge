@@ -19,13 +19,30 @@ npm run dev
 
 ## Search evaluation
 
-The checked-in golden set compares all retrieval stages:
+The checked-in 104-query golden set contains two human-written descriptions for
+each of 52 target problems. It compares all retrieval stages:
 
 ```bash
 npm run search:eval
 ```
 
-It reports Top-1 accuracy, Recall@5, Recall@8, and MRR for keyword-only, vector-only, hybrid/RRF, and hybrid-plus-reranker search.
+It reports Top-1 accuracy, Recall@5, Recall@8, and MRR for keyword-only,
+vector-only, hybrid/RRF, and hybrid-plus-reranker search. It also writes the
+measured results to `reports/search-evaluation.json`. Commit that generated
+report when recording an evaluation run; do not claim target numbers before
+running it locally.
+
+## Tutor answer cache
+
+Normal tutor answers use the Postgres `answer_cache` table with this exact key:
+
+```text
+problem + normalized question + hint level 0
+```
+
+The cached answer expires after 30 days and is returned through the same SSE
+streaming contract with an `X-Cache: HIT` response header. Progressive hints
+continue to use levels 1–4 in the same table.
 
 ## API
 

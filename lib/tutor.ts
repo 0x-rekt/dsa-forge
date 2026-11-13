@@ -5,6 +5,7 @@ import { searchProblems } from "@/lib/search";
 export const tutorModel =
   process.env.GEMINI_TUTOR_MODEL ?? "gemini-2.5-flash";
 const MAX_SOURCES = 8;
+export const TUTOR_CACHE_DAYS = 30;
 
 export type TutorCitation = {
   id: string;
@@ -111,6 +112,14 @@ export function requireTutorApiKey() {
     throw new Error("GEMINI_API_KEY is not configured.");
   }
   return apiKey;
+}
+
+export function normalizeTutorQuestion(question: string) {
+  return question.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+export function tutorAnswerCacheKey(question: string) {
+  return `__ask__${normalizeTutorQuestion(question)}`;
 }
 
 export function buildTutorPrompt(

@@ -5,6 +5,7 @@ import {
   HintFragment,
 } from "@/components/forge/feature-panel";
 import { LandingNav } from "@/components/forge/landing-nav";
+import { HeroDemo } from "@/components/forge/hero-demo";
 
 const ink = "border-4 border-black";
 const shadow = "shadow-[8px_8px_0_#000]"; // taste-skill-ignore: neo brutalism requires solid offset shadows
@@ -17,100 +18,99 @@ export default function Home() {
     <main className="min-h-svh overflow-x-clip bg-[#fff5d6] font-sans text-[17px] leading-relaxed text-black selection:bg-[#ffed00] [&_a]:focus-visible:outline-4 [&_a]:focus-visible:outline-[#ff4332] [&_a]:focus-visible:outline-offset-4">
       <LandingNav />
       <section
-        className="mx-auto grid min-h-0 w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] md:min-h-[min(700px,calc(100svh-88px))] md:grid-cols-[1.15fr_.85fr] md:grid-rows-[1.08fr_.92fr]"
+        className="mx-auto mt-4 w-[calc(100%-32px)] max-w-[1440px] pb-2 sm:mt-6 sm:w-[calc(100%-32px)]"
         aria-labelledby="hero-title"
       >
-        <div
-          className={`${ink} flex min-h-[250px] flex-col justify-end bg-[#ffed00] p-[clamp(22px,3vw,42px)] ${shadow} sm:min-h-[300px] md:min-h-0`}
-        >
-          <h1
-            id="hero-title"
-            className="m-0 max-w-[7ch] text-[clamp(3.5rem,11.5vw,11rem)] font-extrabold leading-[.82] tracking-[-.075em] sm:text-[clamp(4rem,11.5vw,11rem)]"
-          >
-            DSA Forge
-          </h1>
-          <p className="mt-7 max-w-[20ch] text-[clamp(1.1rem,2vw,1.6rem)] font-bold leading-tight">
-            Practice the thinking, not just the answer.
-          </p>
-        </div>
-        <div
-          className={`${ink} flex min-h-[220px] flex-col justify-between bg-white p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
-        >
-          <span className="text-[13px] font-extrabold">YOUR WORKSPACE</span>
-          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
-            Search belongs where your practice lives.
-          </p>
-          <Link
-            className="w-fit font-extrabold underline decoration-3 underline-offset-4"
-            href="/dashboard#search"
-          >
-            Open problem search ↗
-          </Link>
-        </div>
-        <div
-          className={`${ink} flex min-h-[220px] flex-col justify-between bg-black p-[clamp(22px,3vw,42px)] text-white ${shadow} md:min-h-0`}
-        >
-          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
-            Grounded explanations, progressive hints, and code checked against
-            tests.
-          </p>
-          <a
-            className="font-extrabold underline decoration-3 underline-offset-4"
-            href="#how-it-works"
-          >
-            See the loop <span aria-hidden="true">↘</span>
-          </a>
-        </div>
-        <div
-          className={`${ink} flex min-h-[250px] flex-col justify-between bg-[#ff4332] p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
-        >
-          <span
-            className="text-[clamp(2.5rem,5vw,5rem)] font-extrabold leading-none tracking-[-.12em]"
-            aria-hidden="true"
-          >
-            {"//"}
-          </span>
-          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
-            Find the pattern hiding inside the problem.
-          </p>
-          <Link className={`${button} w-fit bg-[#fff5d6]`} href="/sign-in">
-            Open the forge
-          </Link>
+        <div className={`${ink} bg-black p-2 ${shadow}`}>
+          <div className="grid gap-2 lg:grid-cols-[minmax(0,1.16fr)_minmax(0,.84fr)]">
+            <div className="flex flex-col justify-between bg-[#ffed00] p-[clamp(24px,3.6vw,52px)]">
+              <div>
+                <h1
+                  id="hero-title"
+                  className="hero-rise m-0 text-[clamp(3rem,7.2vw,6.5rem)] font-extrabold leading-[.86] tracking-[-.075em]"
+                >
+                  <span className="block">Think first.</span>
+                  <span className="block">Then code.</span>
+                </h1>
+                <p className="hero-rise hero-delay-1 mt-6 max-w-[36ch] text-[clamp(1.05rem,1.5vw,1.3rem)] font-bold leading-snug sm:mt-8">
+                  DSA Forge is the interview-prep tutor that gives you the
+                  next nudge — and tests every solution before it reaches you.
+                </p>
+                <div className="hero-rise hero-delay-2 mt-7 flex flex-wrap items-center gap-x-7 gap-y-4 sm:mt-9">
+                  <Link
+                    className={`${button} min-h-14 bg-black px-6 text-white`}
+                    href="/sign-in"
+                  >
+                    Start solving <span aria-hidden="true">→</span>
+                  </Link>
+                  <a
+                    className="font-extrabold underline decoration-4 underline-offset-4 hover:bg-black hover:text-[#ffed00]"
+                    href="#how-it-works"
+                  >
+                    See the loop <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+              </div>
+              <dl className="mt-10 grid gap-4 border-t-4 border-black pt-5 sm:grid-cols-3 sm:gap-6">
+                <div className="hero-rise hero-delay-3">
+                  <dt className="text-base font-extrabold">Grounded</dt>
+                  <dd className="mt-1 max-w-[26ch] text-base leading-snug">
+                    Every hint points back to the problem&rsquo;s own material.
+                  </dd>
+                </div>
+                <div className="hero-rise hero-delay-4">
+                  <dt className="text-base font-extrabold">Gradual</dt>
+                  <dd className="mt-1 max-w-[26ch] text-base leading-snug">
+                    Four levels, from pattern to your own code.
+                  </dd>
+                </div>
+                <div className="hero-rise hero-delay-5">
+                  <dt className="text-base font-extrabold">Verified</dt>
+                  <dd className="mt-1 max-w-[26ch] text-base leading-snug">
+                    Python runs against sample and edge cases.
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            <div className="min-w-0">
+              <HeroDemo />
+            </div>
+          </div>
         </div>
       </section>
       <section
-        className="mx-auto w-[calc(100%-16px)] max-w-[1440px] py-[clamp(56px,11vw,150px)] sm:w-[calc(100%-32px)]"
+        className="mx-auto w-[calc(100%-32px)] max-w-[1440px] py-[clamp(56px,11vw,150px)] sm:w-[calc(100%-32px)]"
         aria-labelledby="intro-title"
       >
         <p
           id="intro-title"
-          className="m-0 max-w-[980px] text-[clamp(1.8rem,3.7vw,3.6rem)] font-bold leading-tight tracking-[-.045em]"
+          className="m-0 max-w-[1100px] text-[clamp(1.5rem,2.6vw,2.25rem)] font-bold leading-tight tracking-[-.045em]"
         >
-          Most coding help stops at the answer. DSA Forge keeps the struggle
-          useful by turning every question into a path you can follow.
+          Most coding help stops at the answer. DSA Forge turns every question
+          into a path you can follow.
         </p>
         <div className="mt-20 grid gap-6 md:grid-cols-4">
-          <p className="m-0 max-w-[28ch] text-[15px]">
+          <p className="m-0 max-w-[28ch] text-base">
             <strong>For interview prep.</strong> Search by the words you
             remember, then open the problem that fits the shape of your
             thinking.
           </p>
-          <p className="m-0 max-w-[28ch] text-[15px]">
+          <p className="m-0 max-w-[28ch] text-base">
             <strong>For the next move.</strong> Hints arrive in levels, from
             pattern name to plain-language approach to working code.
           </p>
-          <p className="m-0 max-w-[28ch] text-[15px]">
+          <p className="m-0 max-w-[28ch] text-base">
             <strong>For fewer false wins.</strong> Generated Python runs against
             sample and edge cases before it earns a green light.
           </p>
-          <p className="m-0 max-w-[28ch] text-[15px]">
+          <p className="m-0 max-w-[28ch] text-base">
             <strong>For a record of practice.</strong> Attempts and hints reveal
             the patterns that deserve another hour.
           </p>
         </div>
       </section>
       <section
-        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
+        className={`${ink} mx-auto w-[calc(100%-32px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
         id="hints"
         aria-labelledby="features-title"
       >
@@ -176,7 +176,7 @@ export default function Home() {
             title="Answers stay focused"
             copy="No confident guesswork when the database has no good match."
             body={
-              <div className={`${ink} bg-white p-4`} data-ui>
+              <div className={`${ink} bg-white p-4 text-black`} data-ui>
                 <span className="text-[13px] font-extrabold">
                   Retrieval confidence
                 </span>
@@ -209,7 +209,7 @@ export default function Home() {
         </div>
       </section>
       <section
-        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-black p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] text-white ${shadow} sm:w-[calc(100%-32px)]`}
+        className={`${ink} mx-auto w-[calc(100%-32px)] max-w-[1440px] bg-black p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] text-white ${shadow} sm:w-[calc(100%-32px)]`}
         id="how-it-works"
         aria-labelledby="how-title"
       >
@@ -245,7 +245,7 @@ export default function Home() {
         </div>
       </section>
       <section
-        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 py-[clamp(56px,10vw,140px)] sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]"
+        className="mx-auto grid w-[calc(100%-32px)] max-w-[1440px] grid-cols-1 gap-2 py-[clamp(56px,10vw,140px)] sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]"
         id="verify"
         aria-labelledby="proof-title"
       >
@@ -254,7 +254,7 @@ export default function Home() {
         >
           <h2
             id="proof-title"
-            className="max-w-[8ch] text-[clamp(2.8rem,5vw,5.7rem)] font-extrabold leading-[.86] tracking-[-.07em]"
+            className="max-w-[14ch] text-[clamp(2rem,3.2vw,3.2rem)] font-extrabold leading-[.9] tracking-[-.06em]"
           >
             Built around the hard parts
           </h2>
@@ -282,7 +282,7 @@ export default function Home() {
         ))}
       </section>
       <section
-        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[1fr_minmax(0,2.6fr)_1fr]"
+        className="mx-auto grid w-[calc(100%-32px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[1fr_minmax(0,2.6fr)_1fr]"
         aria-labelledby="cta-title"
       >
         <div
@@ -294,7 +294,7 @@ export default function Home() {
         >
           <h2
             id="cta-title"
-            className="max-w-[9ch] text-[clamp(2.8rem,5vw,5.8rem)] font-extrabold leading-[.86] tracking-[-.07em]"
+            className="max-w-[16ch] text-[clamp(2.2rem,3.6vw,3.6rem)] font-extrabold leading-[.9] tracking-[-.06em]"
           >
             Start with the problem you have
           </h2>
@@ -307,7 +307,7 @@ export default function Home() {
           </Link>
         </div>
         <div
-          className={`${ink} grid min-h-[120px] place-items-center bg-white ${shadow} min-[480px]:min-h-[140px] md:min-h-80`}
+          className={`${ink} hidden place-items-center bg-white ${shadow} md:grid md:min-h-80`}
           aria-hidden="true"
         >
           <span className="text-[7rem] font-extrabold leading-none tracking-[-.12em] sm:text-[10rem] md:text-[12rem]">
@@ -315,24 +315,7 @@ export default function Home() {
           </span>
         </div>
       </section>
-      <footer className="mx-auto w-[calc(100%-16px)] max-w-[1440px] px-0 pb-6 pt-2 sm:w-[calc(100%-32px)]">
-        <div className="min-h-[clamp(170px,24vw,330px)] text-[clamp(4rem,19vw,15rem)] font-extrabold leading-[.75] tracking-[-.1em]">
-          FORGE
-        </div>
-        <div className="grid grid-cols-2 gap-6 pb-6 pt-[42px] font-extrabold md:grid-cols-3">
-          <div className="grid gap-2">
-            <Link href="/dashboard#search">Search</Link>
-            <a href="#hints">Hints</a>
-          </div>
-          <div className="grid gap-2">
-            <a href="#verify">Verification</a>
-            <Link href="/dashboard">Practice</Link>
-          </div>
-          <div className="grid gap-2">
-            <Link href="/sign-in">Sign in</Link>
-            <Link href="/dashboard">Dashboard</Link>
-          </div>
-        </div>
+      <footer className="mx-auto w-[calc(100%-32px)] max-w-[1440px] px-0 pb-6 pt-24 sm:w-[calc(100%-32px)]">
         <div className="flex flex-col gap-4 border-t-[3px] border-black pt-5 text-sm font-bold md:flex-row md:justify-between">
           <span>© 2026 DSA Forge</span>
           <span>Built for better attempts.</span>

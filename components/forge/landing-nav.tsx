@@ -4,7 +4,7 @@ import { UserNavigation } from "./user-navigation";
 export function LandingNav() {
   return (
     <nav
-      className="mx-auto grid min-h-[64px] w-[calc(100%-16px)] max-w-[1440px] grid-cols-[44px_minmax(0,1fr)_auto] items-stretch gap-2 pt-2 sm:min-h-[72px] sm:grid-cols-[52px_1fr_auto] sm:w-[calc(100%-32px)]"
+      className="mx-auto grid min-h-[64px] w-[calc(100%-32px)] max-w-[1440px] grid-cols-[44px_minmax(0,1fr)_auto] items-stretch gap-2 pt-2 sm:min-h-[72px] sm:grid-cols-[52px_1fr_auto] sm:w-[calc(100%-32px)]"
       aria-label="Primary navigation"
     >
       <Link

@@ -86,7 +86,7 @@ export async function getDashboardData(userId: string) {
     prisma.attempt.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 5,
       select: {
         id: true,
         verdict: true,

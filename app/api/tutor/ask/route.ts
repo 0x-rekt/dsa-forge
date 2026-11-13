@@ -7,6 +7,8 @@ import {
   createTutorModel,
   getTutorContext,
   requireTutorApiKey,
+  tutorAnswerCacheKey,
+  TUTOR_CACHE_DAYS,
   tutorModel,
 } from "@/lib/tutor";
 
@@ -65,10 +67,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [apiKey, context] = await Promise.all([
-      Promise.resolve(requireTutorApiKey()),
-      getTutorContext(prisma, slug, question),
-    ]);
+    const context = await getTutorContext(prisma, slug, question);
 
     if (!context) {
       return Response.json({ error: "Problem not found." }, { status: 404 });
@@ -80,6 +79,58 @@ export async function POST(request: Request) {
       );
     }
 
+    const cacheKey = tutorAnswerCacheKey(question);
+    const cachedAnswer = await prisma.answerCache.findUnique({
+      where: {
+        problemId_hintLevel_queryText: {
+          problemId: context.problem.id,
+          hintLevel: 0,
+          queryText: cacheKey,
+        },
+      },
+      select: { answer: true, expiresAt: true },
+    });
+
+    if (cachedAnswer && cachedAnswer.expiresAt <= new Date()) {
+      await prisma.answerCache.delete({
+        where: {
+          problemId_hintLevel_queryText: {
+            problemId: context.problem.id,
+            hintLevel: 0,
+            queryText: cacheKey,
+          },
+        },
+      });
+    }
+
+    if (cachedAnswer && cachedAnswer.expiresAt > new Date()) {
+      const encoder = new TextEncoder();
+      const cachedReadable = new ReadableStream({
+        start(controller) {
+          const send = (event: string, data: unknown) =>
+            controller.enqueue(encoder.encode(sse(event, data)));
+          send("start", {
+            problem: context.problem,
+            citations: context.sources,
+            cached: true,
+          });
+          send("token", { text: cachedAnswer.answer });
+          send("done", { cached: true });
+          controller.close();
+        },
+      });
+
+      return new Response(cachedReadable, {
+        headers: {
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "Content-Type": "text/event-stream",
+          "X-Cache": "HIT",
+        },
+      });
+    }
+
+    const apiKey = requireTutorApiKey();
     const model = createTutorModel(apiKey);
     const stream = await model.models.generateContentStream({
       model: tutorModel,
@@ -98,9 +149,39 @@ export async function POST(request: Request) {
         });
 
         try {
+          let answer = "";
           for await (const chunk of stream) {
             const text = chunk.text;
-            if (text) send("token", { text });
+            if (text) {
+              answer += text;
+              send("token", { text });
+            }
+          }
+          if (answer.trim()) {
+            await prisma.answerCache.upsert({
+              where: {
+                problemId_hintLevel_queryText: {
+                  problemId: context.problem.id,
+                  hintLevel: 0,
+                  queryText: cacheKey,
+                },
+              },
+              update: {
+                answer: answer.trim(),
+                expiresAt: new Date(
+                  Date.now() + TUTOR_CACHE_DAYS * 24 * 60 * 60 * 1000,
+                ),
+              },
+              create: {
+                problemId: context.problem.id,
+                hintLevel: 0,
+                queryText: cacheKey,
+                answer: answer.trim(),
+                expiresAt: new Date(
+                  Date.now() + TUTOR_CACHE_DAYS * 24 * 60 * 60 * 1000,
+                ),
+              },
+            });
           }
           send("done", {});
           controller.close();
@@ -117,6 +198,7 @@ export async function POST(request: Request) {
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
         "Content-Type": "text/event-stream",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {
