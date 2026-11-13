@@ -10,7 +10,8 @@ function weaknessScore(
   if (!attempts) return 0;
   const failureRate = failures / attempts;
   const hintPressure = Math.min(averageHints / 4, 1);
-  return Number(((failureRate * 70 + hintPressure * 30) * 100).toFixed(1));
+  // The weighted components already add up to a 0–100 percentage.
+  return Number((failureRate * 70 + hintPressure * 30).toFixed(1));
 }
 
 export async function rebuildPatternStats(
@@ -111,12 +112,16 @@ export async function getDashboardData(userId: string) {
     }),
   ]);
 
-  const [attemptTotals, recommendation] = await Promise.all([
+  const [attemptTotals, recommendation, hintAttempts] = await Promise.all([
     prisma.attempt.aggregate({
       where: { userId },
       _count: { _all: true },
     }),
     getRecommendation(userId, stats),
+    prisma.attempt.findMany({
+      where: { userId },
+      select: { problemId: true, hintsUsed: true },
+    }),
   ]);
 
   const solved = await prisma.attempt.findMany({
@@ -125,16 +130,26 @@ export async function getDashboardData(userId: string) {
     select: { problemId: true },
   });
 
-  const hintsUsed = await prisma.attempt.aggregate({
-    where: { userId },
-    _sum: { hintsUsed: true },
-  });
+  // A hint level belongs to the problem session, not to each submission.
+  // Submitting the same problem again must not count the same hints twice.
+  const highestHintsByProblem = new Map<string, number>();
+  for (const attempt of hintAttempts) {
+    const highest = highestHintsByProblem.get(attempt.problemId) ?? 0;
+    highestHintsByProblem.set(
+      attempt.problemId,
+      Math.max(highest, attempt.hintsUsed),
+    );
+  }
+  const hintsUsed = [...highestHintsByProblem.values()].reduce(
+    (total, hints) => total + hints,
+    0,
+  );
 
   return {
     stats: {
       attempts: attemptTotals._count._all,
       solved: solved.length,
-      hintsUsed: hintsUsed._sum.hintsUsed ?? 0,
+      hintsUsed,
       patternsTracked: stats.length,
     },
     weakPatterns: stats,

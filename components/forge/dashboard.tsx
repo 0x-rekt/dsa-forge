@@ -129,7 +129,7 @@ export function DashboardStats({
     {
       label: "Hints used",
       value: stats.hintsUsed,
-      detail: "Across submissions",
+      detail: "Highest level per problem",
     },
     {
       label: "Patterns tracked",

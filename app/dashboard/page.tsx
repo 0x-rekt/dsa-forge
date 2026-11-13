@@ -8,6 +8,7 @@ import {
   PracticeLoop,
   dashboardPanel,
 } from "@/components/forge/dashboard";
+import { DashboardRefresh } from "@/components/forge/dashboard-refresh";
 import { auth } from "@/lib/auth";
 import { getDashboardData } from "@/lib/progress";
 
@@ -35,12 +36,15 @@ export default async function DashboardPage() {
               Your progress is built from attempts, hints, and verified runs.
             </p>
           </div>
-          <Link
-            className="inline-flex min-h-11 items-center justify-center gap-3 border-4 border-black bg-black px-4 py-2 font-extrabold text-white transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
-            href="/#search"
-          >
-            Find a problem →
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <DashboardRefresh />
+            <Link
+              className="inline-flex min-h-11 items-center justify-center gap-3 border-4 border-black bg-black px-4 py-2 font-extrabold text-white transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
+              href="/#search"
+            >
+              Find a problem →
+            </Link>
+          </div>
         </header>
         <DashboardStats stats={dashboard.stats} />
         <div className="mx-auto grid max-w-[1160px] items-start gap-4 md:grid-cols-[1.35fr_.85fr]">

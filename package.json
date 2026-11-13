@@ -16,6 +16,7 @@
     "db:search-index": "node --import tsx scripts/build-search-index.ts",
     "db:embeddings": "node --import tsx scripts/generate-embeddings.ts",
     "db:seed": "node --import tsx scripts/seed-dataset.ts",
+    "progress:rebuild": "node --import tsx scripts/rebuild-progress.ts",
     "search:eval": "node --import tsx scripts/evaluate-search.ts",
     "db:studio": "prisma studio",
     "auth:generate": "auth generate"
