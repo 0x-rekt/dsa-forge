@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { runPythonCode } from "@/lib/code-runner";
 import { prisma } from "@/lib/prisma";
 import { rebuildPatternStats } from "@/lib/progress";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_CODE_LENGTH = 100_000;
 
@@ -11,6 +12,11 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return Response.json({ error: "Sign in to submit code." }, { status: 401 });
   }
+
+  const rateLimit = await enforceRateLimit(session.user.id, "attempts:create", {
+    limit: 20,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
   let body: unknown;
   try {

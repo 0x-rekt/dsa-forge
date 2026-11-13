@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateAndVerifyPython } from "@/lib/code-generation";
 import { getTutorContext } from "@/lib/tutor";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_REQUEST_LENGTH = 2_000;
 
@@ -14,6 +15,11 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimit = await enforceRateLimit(session.user.id, "code:generate", {
+    limit: 5,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
   let body: unknown;
   try {

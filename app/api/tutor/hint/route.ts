@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   buildTutorPrompt,
   createTutorModel,
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimit = await enforceRateLimit(session.user.id, "tutor:hint", {
+    limit: 20,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
 
   let body: unknown;
   try {
