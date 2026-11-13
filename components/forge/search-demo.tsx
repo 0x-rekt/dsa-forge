@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DisplayResult } from "./types";
@@ -18,6 +19,7 @@ type ApiResult = {
 const fallbackResults: DisplayResult[] = [
   {
     id: "fallback-longest-substring",
+    slug: "longest-substring-without-repeating-characters",
     title: "Longest Substring Without Repeating Characters",
     pattern: "sliding window",
     difficulty: "Medium",
@@ -26,6 +28,7 @@ const fallbackResults: DisplayResult[] = [
   },
   {
     id: "fallback-two-sum",
+    slug: "two-sum",
     title: "Two Sum",
     pattern: "hash map",
     difficulty: "Easy",
@@ -34,6 +37,7 @@ const fallbackResults: DisplayResult[] = [
   },
   {
     id: "fallback-number-of-islands",
+    slug: "number-of-islands",
     title: "Number of Islands",
     pattern: "graph traversal",
     difficulty: "Medium",
@@ -45,7 +49,7 @@ const fallbackResults: DisplayResult[] = [
 export function SearchDemo({
   onResults,
 }: {
-  onResults: (results: DisplayResult[]) => void;
+  onResults?: (results: DisplayResult[]) => void;
 }) {
   const [query, setQuery] = useState("array values add to a target");
   const [results, setResults] = useState(fallbackResults);
@@ -87,7 +91,7 @@ export function SearchDemo({
         whyMatched: item.whyMatched,
       }));
       setResults(next);
-      onResults(next);
+      onResults?.(next);
       setStatus(next.length ? "ready" : "empty");
     } catch (requestError) {
       setStatus("error");
@@ -156,9 +160,18 @@ export function SearchDemo({
           <>
             <div>
               <span className="text-[13px] font-extrabold">Best match</span>
-              <strong className="mt-1 block text-[clamp(1.2rem,2vw,1.8rem)] leading-none">
-                {result.title}
-              </strong>
+              {result.slug ? (
+                <Link
+                  className="mt-1 block text-[clamp(1.2rem,2vw,1.8rem)] font-extrabold leading-none underline decoration-2 underline-offset-4"
+                  href={`/problems/${result.slug}`}
+                >
+                  {result.title}
+                </Link>
+              ) : (
+                <strong className="mt-1 block text-[clamp(1.2rem,2vw,1.8rem)] leading-none">
+                  {result.title}
+                </strong>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="field">{result.pattern}</Badge>
@@ -174,14 +187,27 @@ export function SearchDemo({
                 {result.whyMatched}
               </p>
             )}
-            {results.length > 1 && (
-              <a
-                className="w-fit text-[13px] font-extrabold underline decoration-2 underline-offset-4"
-                href="#retrieval-results"
-              >
-                See all {results.length} matching chunks below ↘
-              </a>
-            )}
+            {results.length > 1 ? (
+              <div className="border-t-2 border-black pt-3">
+                <span className="text-[13px] font-extrabold">
+                  More matching problems
+                </span>
+                <div className="mt-2 grid gap-2">
+                  {results.slice(1, 5).map((item) =>
+                    item.slug ? (
+                      <Link
+                        className="flex items-center justify-between gap-3 text-[13px] font-extrabold underline decoration-2 underline-offset-4"
+                        href={`/problems/${item.slug}`}
+                        key={item.id}
+                      >
+                        <span>{item.title}</span>
+                        <span className="no-underline">{item.difficulty}</span>
+                      </Link>
+                    ) : null,
+                  )}
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>

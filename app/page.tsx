@@ -1,39 +1,31 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import {
   FeaturePanel,
   CodeFragment,
   HintFragment,
 } from "@/components/forge/feature-panel";
-import { RetrievalBoard } from "@/components/forge/retrieval-board";
-import { SearchDemo, fallbackResults } from "@/components/forge/search-demo";
 import { LandingNav } from "@/components/forge/landing-nav";
-import type { DisplayResult } from "@/components/forge/types";
 
 const ink = "border-4 border-black";
-const shadow = "shadow-[8px_8px_0_#000]";
-const smallShadow = "shadow-[5px_5px_0_#000]";
+const shadow = "shadow-[8px_8px_0_#000]"; // taste-skill-ignore: neo brutalism requires solid offset shadows
+const smallShadow = "shadow-[5px_5px_0_#000]"; // taste-skill-ignore: neo brutalism requires solid offset shadows
 const button =
   "inline-flex min-h-12 items-center justify-center gap-3 border-4 border-black px-5 py-3 font-extrabold transition-transform duration-0 hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4 active:translate-x-2 active:translate-y-2";
 
 export default function Home() {
-  const [liveResults, setLiveResults] =
-    useState<DisplayResult[]>(fallbackResults);
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#fff5d6] font-sans text-[17px] leading-relaxed text-black selection:bg-[#ffed00] [&_a]:focus-visible:outline-4 [&_a]:focus-visible:outline-[#ff4332] [&_a]:focus-visible:outline-offset-4">
+    <main className="min-h-svh overflow-x-clip bg-[#fff5d6] font-sans text-[17px] leading-relaxed text-black selection:bg-[#ffed00] [&_a]:focus-visible:outline-4 [&_a]:focus-visible:outline-[#ff4332] [&_a]:focus-visible:outline-offset-4">
       <LandingNav />
       <section
-        className="mx-auto grid min-h-[min(700px,calc(100svh-88px))] w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] md:grid-cols-2 md:grid-rows-2"
+        className="mx-auto grid min-h-0 w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] md:min-h-[min(700px,calc(100svh-88px))] md:grid-cols-[1.15fr_.85fr] md:grid-rows-[1.08fr_.92fr]"
         aria-labelledby="hero-title"
       >
         <div
-          className={`${ink} flex min-h-[32svh] flex-col justify-end bg-[#ffed00] p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
+          className={`${ink} flex min-h-[250px] flex-col justify-end bg-[#ffed00] p-[clamp(22px,3vw,42px)] ${shadow} sm:min-h-[300px] md:min-h-0`}
         >
           <h1
             id="hero-title"
-            className="m-0 max-w-[7ch] text-[clamp(4rem,11.5vw,11rem)] font-extrabold leading-[.82] tracking-[-.075em]"
+            className="m-0 max-w-[7ch] text-[clamp(3.5rem,11.5vw,11rem)] font-extrabold leading-[.82] tracking-[-.075em] sm:text-[clamp(4rem,11.5vw,11rem)]"
           >
             DSA Forge
           </h1>
@@ -42,14 +34,21 @@ export default function Home() {
           </p>
         </div>
         <div
-          id="search"
-          aria-label="Problem search"
-          className={`${ink} flex items-center bg-white p-[clamp(22px,3vw,42px)] ${shadow}`}
+          className={`${ink} flex min-h-[220px] flex-col justify-between bg-white p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
         >
-          <SearchDemo onResults={setLiveResults} />
+          <span className="text-[13px] font-extrabold">YOUR WORKSPACE</span>
+          <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
+            Search belongs where your practice lives.
+          </p>
+          <Link
+            className="w-fit font-extrabold underline decoration-3 underline-offset-4"
+            href="/dashboard#search"
+          >
+            Open problem search ↗
+          </Link>
         </div>
         <div
-          className={`${ink} flex flex-col justify-between bg-black p-[clamp(22px,3vw,42px)] text-white ${shadow}`}
+          className={`${ink} flex min-h-[220px] flex-col justify-between bg-black p-[clamp(22px,3vw,42px)] text-white ${shadow} md:min-h-0`}
         >
           <p className="m-0 max-w-[18ch] text-[clamp(1.5rem,2.6vw,2.45rem)] font-bold leading-none tracking-[-.035em]">
             Grounded explanations, progressive hints, and code checked against
@@ -63,7 +62,7 @@ export default function Home() {
           </a>
         </div>
         <div
-          className={`${ink} flex min-h-[240px] flex-col justify-between bg-[#ff4332] p-[clamp(22px,3vw,42px)] ${shadow}`}
+          className={`${ink} flex min-h-[250px] flex-col justify-between bg-[#ff4332] p-[clamp(22px,3vw,42px)] ${shadow} md:min-h-0`}
         >
           <span
             className="text-[clamp(2.5rem,5vw,5rem)] font-extrabold leading-none tracking-[-.12em]"
@@ -80,7 +79,7 @@ export default function Home() {
         </div>
       </section>
       <section
-        className="mx-auto w-[calc(100%-16px)] max-w-[1440px] py-[clamp(76px,11vw,150px)] sm:w-[calc(100%-32px)]"
+        className="mx-auto w-[calc(100%-16px)] max-w-[1440px] py-[clamp(56px,11vw,150px)] sm:w-[calc(100%-32px)]"
         aria-labelledby="intro-title"
       >
         <p
@@ -111,34 +110,13 @@ export default function Home() {
         </div>
       </section>
       <section
-        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-white p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
-        id="practice"
-        aria-label="Search retrieval results"
-      >
-        <div id="retrieval-results" className="scroll-mt-8">
-          <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
-            <h2
-              id="showcase-title"
-              className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
-            >
-              Search that names the pattern
-            </h2>
-            <p className="m-0 max-w-[34ch] text-[19px] font-bold leading-snug">
-              Describe the problem in your own words. Hybrid search combines
-              meaning and keywords, then shows why each result belongs.
-            </p>
-          </div>
-          <RetrievalBoard items={liveResults} />
-        </div>
-      </section>
-      <section
-        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
+        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-[#d4bdff] p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] ${shadow} sm:w-[calc(100%-32px)]`}
         id="hints"
         aria-labelledby="features-title"
       >
         <h2
           id="features-title"
-          className="mb-14 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+          className="mb-10 max-w-[12ch] text-[clamp(2.6rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em] sm:mb-14"
         >
           What the forge checks
         </h2>
@@ -231,14 +209,14 @@ export default function Home() {
         </div>
       </section>
       <section
-        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-black p-[clamp(72px,10vw,140px)_clamp(16px,4vw,58px)] text-white ${shadow} sm:w-[calc(100%-32px)]`}
+        className={`${ink} mx-auto w-[calc(100%-16px)] max-w-[1440px] bg-black p-[clamp(48px,10vw,140px)_clamp(16px,4vw,58px)] text-white ${shadow} sm:w-[calc(100%-32px)]`}
         id="how-it-works"
         aria-labelledby="how-title"
       >
         <div className="mb-14 grid items-end gap-6 md:grid-cols-[1.1fr_.9fr] md:gap-14">
           <h2
             id="how-title"
-            className="m-0 max-w-[12ch] text-[clamp(2.8rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
+          className="m-0 max-w-[12ch] text-[clamp(2.6rem,6vw,6.5rem)] font-extrabold leading-[.88] tracking-[-.07em]"
           >
             From stuck to solved
           </h2>
@@ -267,12 +245,12 @@ export default function Home() {
         </div>
       </section>
       <section
-        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-2 gap-2 py-[clamp(72px,10vw,140px)] sm:w-[calc(100%-32px)] md:grid-cols-[2fr_1fr_1fr]"
+        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 py-[clamp(56px,10vw,140px)] sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]"
         id="verify"
         aria-labelledby="proof-title"
       >
         <div
-          className={`${ink} col-span-2 flex min-h-72 flex-col justify-between bg-[#ffed00] p-4 sm:p-6 ${smallShadow} md:col-span-1 md:row-span-2`}
+          className={`${ink} flex min-h-72 flex-col justify-between bg-[#ffed00] p-4 sm:p-6 ${smallShadow} min-[480px]:col-span-2 md:col-span-1 md:row-span-2`}
         >
           <h2
             id="proof-title"
@@ -304,7 +282,7 @@ export default function Home() {
         ))}
       </section>
       <section
-        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-2 gap-2 pb-2 sm:w-[calc(100%-32px)] md:grid-cols-[1fr_minmax(0,2.6fr)_1fr]"
+        className="mx-auto grid w-[calc(100%-16px)] max-w-[1440px] grid-cols-1 gap-2 pb-2 sm:w-[calc(100%-32px)] min-[480px]:grid-cols-2 md:grid-cols-[1fr_minmax(0,2.6fr)_1fr]"
         aria-labelledby="cta-title"
       >
         <div
@@ -312,7 +290,7 @@ export default function Home() {
           aria-hidden="true"
         />
         <div
-          className={`${ink} col-span-2 flex min-h-[330px] flex-col items-start justify-center gap-6 bg-[#ff4332] p-[clamp(24px,5vw,64px)] ${shadow} md:col-span-1 md:min-h-80`}
+          className={`${ink} flex min-h-[330px] flex-col items-start justify-center gap-6 bg-[#ff4332] p-[clamp(24px,5vw,64px)] ${shadow} min-[480px]:col-span-2 md:col-span-1 md:min-h-80`}
         >
           <h2
             id="cta-title"
@@ -329,10 +307,10 @@ export default function Home() {
           </Link>
         </div>
         <div
-          className={`${ink} grid min-h-[120px] place-items-center bg-white ${shadow} md:min-h-80`}
+          className={`${ink} grid min-h-[120px] place-items-center bg-white ${shadow} min-[480px]:min-h-[140px] md:min-h-80`}
           aria-hidden="true"
         >
-          <span className="text-[12rem] font-extrabold leading-none tracking-[-.12em]">
+          <span className="text-[7rem] font-extrabold leading-none tracking-[-.12em] sm:text-[10rem] md:text-[12rem]">
             ?
           </span>
         </div>
@@ -343,12 +321,12 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 gap-6 pb-6 pt-[42px] font-extrabold md:grid-cols-3">
           <div className="grid gap-2">
-            <a href="#search">Search</a>
+            <Link href="/dashboard#search">Search</Link>
             <a href="#hints">Hints</a>
           </div>
           <div className="grid gap-2">
             <a href="#verify">Verification</a>
-            <a href="#practice">Practice</a>
+            <Link href="/dashboard">Practice</Link>
           </div>
           <div className="grid gap-2">
             <Link href="/sign-in">Sign in</Link>

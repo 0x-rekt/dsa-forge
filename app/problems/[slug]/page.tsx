@@ -59,7 +59,7 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
           <div>
             <Link
               className="font-bold underline decoration-2 underline-offset-4"
-              href="/#search"
+              href="/dashboard#search"
             >
               ← Back to search
             </Link>

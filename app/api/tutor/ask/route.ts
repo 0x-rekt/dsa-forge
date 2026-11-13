@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   buildTutorPrompt,
@@ -12,6 +14,14 @@ function sse(event: string, data: unknown) {
 }
 
 export async function POST(request: Request) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    return Response.json(
+      { error: "Sign in to use the tutor." },
+      { status: 401 },
+    );
+  }
+
   let body: unknown;
 
   try {

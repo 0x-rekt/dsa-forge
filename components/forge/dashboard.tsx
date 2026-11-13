@@ -20,25 +20,25 @@ export function DashboardNav({
 }) {
   return (
     <aside
-      className={`${dashboardPanel} flex min-h-screen flex-col border-y-0 border-l-0 p-5 lg:border-r-2`}
+      className={`${dashboardPanel} flex min-h-0 flex-col border-x-0 border-t-0 p-4 md:min-h-svh md:border-r-2 md:p-5`}
       aria-label="Dashboard navigation"
     >
       <ForgeMark />
-      <div className="my-12 hidden gap-1 border-b-2 border-black px-2 pb-5 lg:grid">
+      <div className="my-8 hidden gap-1 border-b-2 border-black px-2 pb-5 md:my-12 md:grid">
         <span className="text-xs font-extrabold text-[#4e4a3e]">
           Personal practice
         </span>
         <strong className="truncate text-[15px]">{user.name}</strong>
       </div>
       <nav
-        className="mt-6 flex gap-1 overflow-x-auto lg:mt-0 lg:grid"
+        className="mt-4 flex gap-1 overflow-x-auto md:mt-0 md:grid"
         aria-label="Workspace"
       >
-        <span className="hidden px-2 pb-2 text-xs font-extrabold lg:block">
+        <span className="hidden px-2 pb-2 text-xs font-extrabold md:block">
           Workspace
         </span>
         <Link
-          className="min-h-10 shrink-0 px-3 py-2 font-bold hover:bg-white lg:[&[aria-current=page]]:border-l-2 lg:[&[aria-current=page]]:border-black lg:[&[aria-current=page]]:bg-white"
+          className="min-h-10 shrink-0 px-3 py-2 font-bold hover:bg-white md:[&[aria-current=page]]:border-l-2 md:[&[aria-current=page]]:border-black md:[&[aria-current=page]]:bg-white"
           href="/dashboard"
           aria-current="page"
         >
@@ -46,24 +46,12 @@ export function DashboardNav({
         </Link>
         <Link
           className="min-h-10 shrink-0 px-3 py-2 font-bold hover:bg-white"
-          href="/#search"
+          href="/dashboard#search"
         >
           Find a problem
         </Link>
-        <Link
-          className="min-h-10 shrink-0 px-3 py-2 font-bold hover:bg-white"
-          href="/#hints"
-        >
-          Hint ladder
-        </Link>
-        <Link
-          className="min-h-10 shrink-0 px-3 py-2 font-bold hover:bg-white"
-          href="/#verify"
-        >
-          Verification
-        </Link>
       </nav>
-      <div className="mt-auto hidden gap-6 lg:grid">
+      <div className="mt-auto hidden gap-6 md:grid">
         <div className="flex min-w-0 items-center gap-2 border-t-2 border-black px-2 pt-3">
           <span
             className="grid h-8 w-8 shrink-0 place-items-center border-2 border-black bg-[#d4bdff] text-xs font-extrabold"

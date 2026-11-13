@@ -4,7 +4,7 @@ import { UserNavigation } from "./user-navigation";
 export function LandingNav() {
   return (
     <nav
-      className="mx-auto grid min-h-[72px] w-[calc(100%-16px)] max-w-[1440px] grid-cols-[52px_1fr_auto] items-stretch gap-2 pt-2 sm:w-[calc(100%-32px)]"
+      className="mx-auto grid min-h-[64px] w-[calc(100%-16px)] max-w-[1440px] grid-cols-[44px_minmax(0,1fr)_auto] items-stretch gap-2 pt-2 sm:min-h-[72px] sm:grid-cols-[52px_1fr_auto] sm:w-[calc(100%-32px)]"
       aria-label="Primary navigation"
     >
       <Link
@@ -16,10 +16,8 @@ export function LandingNav() {
         <span className="sr-only">DSA Forge</span>
       </Link>
       <div className="hidden items-center justify-end gap-[clamp(18px,3vw,48px)] px-6 font-bold md:flex">
-        <a href="#search">Search</a>
-        <a href="#hints">Hints</a>
-        <a href="#verify">Verify</a>
-        <a href="#practice">Practice</a>
+        <Link href="/dashboard#search">Search</Link>
+        <Link href="/dashboard">Practice</Link>
       </div>
       <UserNavigation />
     </nav>

@@ -39,9 +39,9 @@ export function UserNavigation() {
       </Link>
     );
   return (
-    <div className="flex items-stretch gap-2">
+    <div className="flex max-w-full flex-wrap justify-end gap-1.5 sm:gap-2">
       <Link
-        className="flex min-w-0 items-center gap-2 border-4 border-black bg-white px-3 py-2 font-extrabold hover:bg-[#ffed00]"
+        className="flex min-w-0 items-center gap-2 border-4 border-black bg-white px-2 py-2 font-extrabold hover:bg-[#ffed00] sm:px-3"
         href="/dashboard"
         aria-label={`Open dashboard for ${user.name}`}
       >
@@ -64,14 +64,14 @@ export function UserNavigation() {
         </span>
       </Link>
       <Link
-        className="inline-flex min-h-12 items-center border-4 border-black bg-[#ffed00] px-3 font-extrabold text-black transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
+        className="inline-flex min-h-11 items-center border-4 border-black bg-[#ffed00] px-2 text-sm font-extrabold text-black transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4 sm:min-h-12 sm:px-3 sm:text-base"
         href="/dashboard"
       >
         Dashboard
       </Link>
       <Button
         variant="forge"
-        className="h-auto min-h-0 px-3 py-2 text-sm"
+        className="h-auto min-h-0 px-2 py-2 text-xs sm:px-3 sm:text-sm"
         onClick={handleSignOut}
       >
         Log out

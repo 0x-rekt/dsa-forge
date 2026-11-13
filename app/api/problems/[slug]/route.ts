@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findSimilarProblems } from "@/lib/search";
 
@@ -5,6 +7,14 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    return Response.json(
+      { error: "Sign in to view problem details." },
+      { status: 401 },
+    );
+  }
+
   const { slug } = await params;
 
   if (!slug.trim()) {

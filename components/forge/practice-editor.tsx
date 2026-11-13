@@ -205,7 +205,7 @@ export function PracticeEditor({
             value={code}
           />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[#4a4a4a] px-5 py-4">
+          <div className="flex flex-col items-stretch gap-4 border-t-2 border-[#4a4a4a] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <button
             className="font-bold text-[#d5d5d5] underline underline-offset-4 hover:text-white"
             onClick={() => {
@@ -216,11 +216,12 @@ export function PracticeEditor({
           >
             Reset starter code
           </button>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <Button
               disabled={running || generating || submitting}
               onClick={runCode}
               size="lg"
+              className="w-full sm:w-auto"
               variant="forge"
             >
               {running ? "Running…" : "Run code →"}
@@ -229,6 +230,7 @@ export function PracticeEditor({
               disabled={running || generating || submitting}
               onClick={generateCode}
               size="lg"
+              className="w-full sm:w-auto"
               variant="outline"
             >
               {generating ? "Generating…" : "Generate verified solution"}
@@ -242,6 +244,7 @@ export function PracticeEditor({
               }
               onClick={submitCode}
               size="lg"
+              className="w-full sm:w-auto"
               variant="forge"
             >
               {submitting

@@ -9,6 +9,7 @@ import {
   dashboardPanel,
 } from "@/components/forge/dashboard";
 import { DashboardRefresh } from "@/components/forge/dashboard-refresh";
+import { SearchDemo } from "@/components/forge/search-demo";
 import { auth } from "@/lib/auth";
 import { getDashboardData } from "@/lib/progress";
 
@@ -21,9 +22,9 @@ export default async function DashboardPage() {
   const dashboard = await getDashboardData(user.id);
   const recommendation = dashboard.recommendations[0];
   return (
-    <div className="grid min-h-screen bg-[#fff5d6] text-black lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="grid min-h-svh bg-[#fff5d6] text-black md:grid-cols-[248px_minmax(0,1fr)]">
       <DashboardNav user={user} />
-      <main className="min-w-0 bg-white px-5 py-9 sm:px-8 lg:px-16">
+      <main className="min-w-0 bg-white px-4 py-7 sm:px-8 sm:py-9 md:px-10 lg:px-16">
         <header className="mx-auto mb-8 flex max-w-[1160px] flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="mb-2 text-xs font-extrabold text-[#4e4a3e]">
@@ -40,13 +41,32 @@ export default async function DashboardPage() {
             <DashboardRefresh />
             <Link
               className="inline-flex min-h-11 items-center justify-center gap-3 border-4 border-black bg-black px-4 py-2 font-extrabold text-white transition-transform hover:translate-x-1 hover:translate-y-1 focus-visible:outline-4 focus-visible:outline-[#ff4332] focus-visible:outline-offset-4"
-              href="/#search"
+              href="/dashboard#search"
             >
               Find a problem →
             </Link>
           </div>
         </header>
         <DashboardStats stats={dashboard.stats} />
+        <section
+          className="mx-auto mb-6 grid max-w-[1160px] gap-5 border-4 border-black bg-[#d4bdff] p-5 sm:p-7"
+          id="search"
+          aria-labelledby="dashboard-search-title"
+        >
+          <div className="grid items-end gap-4 md:grid-cols-[.8fr_1.2fr]">
+            <h2
+              className="m-0 max-w-[12ch] text-[clamp(2rem,4vw,3.7rem)] font-extrabold leading-none tracking-[-.07em]"
+              id="dashboard-search-title"
+            >
+              Find the problem you mean
+            </h2>
+            <p className="m-0 max-w-[48ch] font-bold text-[#464646]">
+              Describe the problem in your own words. Search combines meaning
+              and keywords, then takes you straight to the problem workspace.
+            </p>
+          </div>
+          <SearchDemo />
+        </section>
         <div className="mx-auto grid max-w-[1160px] items-start gap-4 md:grid-cols-[1.35fr_.85fr]">
           <section
             className={`${dashboardPanel} bg-[#ffed00]`}
@@ -116,7 +136,7 @@ export default async function DashboardPage() {
               ) : (
                 <Link
                   className="w-fit font-extrabold underline decoration-2 underline-offset-4"
-                  href="/#search"
+                  href="/dashboard#search"
                 >
                   Find a problem ↗
                 </Link>
@@ -192,7 +212,7 @@ export default async function DashboardPage() {
                   </span>
                   <Link
                     className="mt-2 w-fit font-extrabold underline decoration-2 underline-offset-4"
-                    href="/#search"
+                    href="/dashboard#search"
                   >
                     Search problems ↗
                   </Link>
