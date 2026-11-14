@@ -2,12 +2,25 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { prisma } from "../lib/prisma";
 import { searchProblems, type SearchMode } from "../lib/search";
 
-type GoldenSeed = { slug: string; queries: [string, string] };
-type GoldenCase = { query: string; expectedSlugs: string[] };
+type QueryType = "reworded" | "exact-title" | "pasted-statement" | "partial";
+type GoldenSeed = { slug: string; queries: string[] };
+type GoldenCase = {
+  query: string;
+  expectedSlugs: string[];
+  type: QueryType;
+};
 
-// Two human-written descriptions per problem produce a 104-query set while
-// keeping every target problem explicit and reviewable.
-const goldenSeeds: GoldenSeed[] = [
+const QUERY_TYPES: QueryType[] = [
+  "reworded",
+  "exact-title",
+  "pasted-statement",
+  "partial",
+];
+
+// Two human-written rewordings per problem. Exact-title and pasted-statement
+// cases are generated from the database at run time, so this file stays
+// reviewable instead of hardcoding 104 more strings.
+const paraphraseSeeds: GoldenSeed[] = [
   { slug: "two-sum", queries: ["find two numbers that add to a target", "array pair with a required sum"] },
   { slug: "add-two-numbers", queries: ["add two numbers represented by linked lists", "sum linked list digits"] },
   { slug: "longest-substring-without-repeating-characters", queries: ["longest substring with no repeated characters", "largest window of unique characters"] },
@@ -62,9 +75,101 @@ const goldenSeeds: GoldenSeed[] = [
   { slug: "sliding-window-maximum", queries: ["maximum value in every sliding window", "largest number for each fixed size window"] },
 ];
 
-const goldenCases: GoldenCase[] = goldenSeeds.flatMap(({ slug, queries }) =>
-  queries.map((query) => ({ query, expectedSlugs: [slug] })),
-);
+// Deliberately vague "I'm stuck on ..." descriptions. These are the queries a
+// confused user actually types, and they are the hardest for both retrieval
+// paths: no exact wording, no full problem context.
+const partialSeeds: GoldenSeed[] = [
+  { slug: "two-sum", queries: ["i'm stuck on the one where two numbers add up to a target"] },
+  { slug: "valid-parentheses", queries: ["stuck on the brackets balancing question"] },
+  { slug: "number-of-islands", queries: ["i don't get the grid problem that counts separate land areas"] },
+  { slug: "best-time-to-buy-and-sell-stock", queries: ["stuck on the max profit from one stock trade problem"] },
+  { slug: "coin-change", queries: ["i can't solve the fewest coins for an amount question"] },
+  { slug: "house-robber", queries: ["stuck on the robber problem where adjacent houses are off limits"] },
+  { slug: "merge-intervals", queries: ["the meeting ranges question where overlaps get combined"] },
+  { slug: "linked-list-cycle", queries: ["stuck on detecting whether a linked list loops back"] },
+  { slug: "rotate-image", queries: ["the square grid rotation problem in ninety degree turns"] },
+  { slug: "course-schedule", queries: ["i'm stuck on whether all courses can finish given prerequisites"] },
+  { slug: "sliding-window-maximum", queries: ["the problem about the largest value in each moving window"] },
+  { slug: "trapping-rain-water", queries: ["stuck on how much water gets caught between vertical bars"] },
+  { slug: "word-break", queries: ["can this string be split into dictionary words question"] },
+  { slug: "generate-parentheses", queries: ["i'm stuck generating every balanced bracket string"] },
+  { slug: "climbing-stairs", queries: ["the staircase question counting ways with one or two steps"] },
+];
+
+const PASTED_STATEMENT_CHARS = 320;
+
+function statementExcerpt(statement: string) {
+  const collapsed = statement.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= PASTED_STATEMENT_CHARS) return collapsed;
+
+  const cut = collapsed.slice(0, PASTED_STATEMENT_CHARS);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim();
+}
+
+async function buildGoldenSet() {
+  const slugs = [...new Set(paraphraseSeeds.map((seed) => seed.slug))];
+  const problems = await prisma.problem.findMany({
+    where: { slug: { in: slugs } },
+    select: { slug: true, title: true, statement: true },
+  });
+  const bySlug = new Map(problems.map((problem) => [problem.slug, problem]));
+  const missing = slugs.filter((slug) => !bySlug.has(slug));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Golden set contains slugs missing from the database: ${missing.join(", ")}`,
+    );
+  }
+
+  const reworded: GoldenCase[] = paraphraseSeeds.flatMap(({ slug, queries }) =>
+    queries.map((query) => ({
+      query,
+      expectedSlugs: [slug],
+      type: "reworded" as const,
+    })),
+  );
+  const exactTitle: GoldenCase[] = [];
+  const pastedStatement: GoldenCase[] = [];
+
+  for (const slug of slugs) {
+    const problem = bySlug.get(slug);
+    if (!problem) continue;
+
+    exactTitle.push({
+      query: problem.title,
+      expectedSlugs: [slug],
+      type: "exact-title",
+    });
+
+    const excerpt = statementExcerpt(problem.statement);
+    if (excerpt) {
+      pastedStatement.push({
+        query: excerpt,
+        expectedSlugs: [slug],
+        type: "pasted-statement",
+      });
+    }
+  }
+
+  const partial: GoldenCase[] = partialSeeds.flatMap(({ slug, queries }) =>
+    queries.map((query) => ({
+      query,
+      expectedSlugs: [slug],
+      type: "partial" as const,
+    })),
+  );
+
+  const cases = [...reworded, ...exactTitle, ...pastedStatement, ...partial];
+  const typeCounts = Object.fromEntries(
+    QUERY_TYPES.map((type) => [
+      type,
+      cases.filter((testCase) => testCase.type === type).length,
+    ]),
+  ) as Record<QueryType, number>;
+
+  return { cases, typeCounts };
+}
 
 function reciprocalRank(results: string[], expected: string[]) {
   const rank = results.findIndex((slug) => expected.includes(slug));
@@ -74,6 +179,41 @@ function reciprocalRank(results: string[], expected: string[]) {
 function recallAt(results: string[], expected: string[], k: number) {
   const returned = new Set(results.slice(0, k));
   return expected.filter((slug) => returned.has(slug)).length / expected.length;
+}
+
+type MetricTotals = {
+  count: number;
+  top1: number;
+  recall5: number;
+  recall8: number;
+  mrr: number;
+};
+
+function emptyTotals(): MetricTotals {
+  return { count: 0, top1: 0, recall5: 0, recall8: 0, mrr: 0 };
+}
+
+function addResult(
+  totals: MetricTotals,
+  resultSlugs: string[],
+  expected: string[],
+) {
+  totals.count += 1;
+  totals.top1 += expected.includes(resultSlugs[0]) ? 1 : 0;
+  totals.recall5 += recallAt(resultSlugs, expected, 5);
+  totals.recall8 += recallAt(resultSlugs, expected, 8);
+  totals.mrr += reciprocalRank(resultSlugs, expected);
+}
+
+function summarize(totals: MetricTotals) {
+  const divisor = Math.max(totals.count, 1);
+  return {
+    queries: totals.count,
+    top1Accuracy: Number((totals.top1 / divisor).toFixed(3)),
+    recallAt5: Number((totals.recall5 / divisor).toFixed(3)),
+    recallAt8: Number((totals.recall8 / divisor).toFixed(3)),
+    mrr: Number((totals.mrr / divisor).toFixed(3)),
+  };
 }
 
 function rerankDelayMs() {
@@ -125,37 +265,34 @@ function selectedModes() {
 async function main() {
   const delayMs = rerankDelayMs();
   const modes = selectedModes();
-  const expectedSlugs = [...new Set(goldenCases.flatMap((testCase) => testCase.expectedSlugs))];
-  const knownProblems = await prisma.problem.findMany({
-    where: { slug: { in: expectedSlugs } },
-    select: { slug: true },
-  });
-  const knownSlugs = new Set(knownProblems.map((problem) => problem.slug));
-  const missingSlugs = expectedSlugs.filter((slug) => !knownSlugs.has(slug));
+  const { cases: goldenCases, typeCounts } = await buildGoldenSet();
+  const expectedSlugs = [
+    ...new Set(goldenCases.flatMap((testCase) => testCase.expectedSlugs)),
+  ];
 
-  if (missingSlugs.length > 0) {
-    throw new Error(
-      `Golden set contains slugs missing from the database: ${missingSlugs.join(", ")}`,
-    );
-  }
-
-  console.log(`Evaluating ${goldenCases.length} golden queries`);
+  console.log(
+    `Evaluating ${goldenCases.length} golden queries (${QUERY_TYPES.map(
+      (type) => `${type}: ${typeCounts[type]}`,
+    ).join(", ")})`,
+  );
   if (delayMs > 0) {
     console.log(`Waiting ${delayMs} ms between reranked queries.`);
   }
   const summaries = [];
 
   for (const mode of modes) {
-    let recall5 = 0;
-    let recall8 = 0;
-    let mrr = 0;
-    let top1 = 0;
+    const overall = emptyTotals();
+    const byType = new Map<QueryType, MetricTotals>(
+      QUERY_TYPES.map((type) => [type, emptyTotals()]),
+    );
     let rerankedAvailable = 0;
     let rerankFailures = 0;
 
+    console.log(`Running ${mode}...`);
+
     for (const [index, testCase] of goldenCases.entries()) {
       if (mode === "reranked" && delayMs > 0) await sleep(delayMs);
-      if (mode === "reranked" && (index + 1) % 20 === 0) {
+      if (mode === "reranked" && (index + 1) % 50 === 0) {
         console.log(`${mode}: ${index + 1}/${goldenCases.length}`);
       }
       const response = await searchProblems(prisma, testCase.query, {}, mode);
@@ -163,23 +300,23 @@ async function main() {
         rerankFailures += 1;
       }
       const resultSlugs = response.results.map((result) => result.slug);
-      recall5 += recallAt(resultSlugs, testCase.expectedSlugs, 5);
-      recall8 += recallAt(resultSlugs, testCase.expectedSlugs, 8);
-      mrr += reciprocalRank(resultSlugs, testCase.expectedSlugs);
-      top1 += testCase.expectedSlugs.includes(resultSlugs[0]) ? 1 : 0;
+      addResult(overall, resultSlugs, testCase.expectedSlugs);
+      const typeTotals = byType.get(testCase.type);
+      if (typeTotals) addResult(typeTotals, resultSlugs, testCase.expectedSlugs);
       rerankedAvailable += response.rerankingAvailable ? 1 : 0;
     }
 
-    const total = goldenCases.length;
     const summary = {
       mode,
-      queries: total,
-      top1Accuracy: Number((top1 / total).toFixed(3)),
-      recallAt5: Number((recall5 / total).toFixed(3)),
-      recallAt8: Number((recall8 / total).toFixed(3)),
-      mrr: Number((mrr / total).toFixed(3)),
+      ...summarize(overall),
       rerankingAvailableQueries: rerankedAvailable,
       ...(mode === "reranked" ? { rerankFailures } : {}),
+      byType: Object.fromEntries(
+        QUERY_TYPES.map((type) => [
+          type,
+          summarize(byType.get(type) ?? emptyTotals()),
+        ]),
+      ),
     };
     summaries.push(summary);
     console.log(JSON.stringify({ summary }));
@@ -188,6 +325,31 @@ async function main() {
       console.warn(
         `${rerankFailures} reranked queries fell back to RRF results. ` +
           "Increase --delay-ms before treating this row as a reranked measurement.",
+      );
+    }
+  }
+
+  console.log("\nPer-type results");
+  console.log(
+    "mode".padEnd(10) +
+      "type".padEnd(20) +
+      "n".padStart(5) +
+      "top1".padStart(8) +
+      "r@5".padStart(8) +
+      "r@8".padStart(8) +
+      "mrr".padStart(8),
+  );
+  for (const summary of summaries) {
+    for (const type of QUERY_TYPES) {
+      const metrics = summary.byType[type];
+      console.log(
+        summary.mode.padEnd(10) +
+          type.padEnd(20) +
+          String(metrics.queries).padStart(5) +
+          metrics.top1Accuracy.toFixed(3).padStart(8) +
+          metrics.recallAt5.toFixed(3).padStart(8) +
+          metrics.recallAt8.toFixed(3).padStart(8) +
+          metrics.mrr.toFixed(3).padStart(8),
       );
     }
   }
@@ -204,6 +366,7 @@ async function main() {
     queryCount: goldenCases.length,
     targetCount: expectedSlugs.length,
     rerankDelayMs: delayMs,
+    typeCounts,
     summaries,
   };
   await mkdir("reports", { recursive: true });

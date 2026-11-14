@@ -17,6 +17,43 @@ const sectionWeights: Record<string, number> = {
   code: 0.45,
 };
 
+// Conversational words that carry no retrieval signal in a "help, I'm stuck"
+// query. They are removed only from the fuzzy fallback query, never from the
+// strict match.
+const FALLBACK_STOPWORDS = new Set([
+  "stuck",
+  "problem",
+  "problems",
+  "question",
+  "help",
+  "please",
+  "dont",
+  "cant",
+  "cannot",
+  "does",
+  "work",
+  "understand",
+  "about",
+  "where",
+  "when",
+  "what",
+  "which",
+  "with",
+  "that",
+  "this",
+  "from",
+  "into",
+  "using",
+  "solve",
+  "solving",
+  "keep",
+  "failing",
+  "the",
+  "and",
+  "for",
+  "one",
+]);
+
 // Keyword matching is materially weaker than embedding search on paraphrase
 // queries, so the two lists must not contribute equally to RRF. Vector hits
 // still need keyword support for exact names, hence a non-zero keyword weight.
@@ -29,6 +66,9 @@ const sourceWeights = {
   keyword: envWeight("SEARCH_KEYWORD_WEIGHT", 0.2),
   vector: envWeight("SEARCH_VECTOR_WEIGHT", 1),
   rerank: envWeight("SEARCH_RERANK_WEIGHT", 1),
+  // A query that matches the problem title is a much stronger signal than one
+  // that happens to share body words, so title hits get their own multiplier.
+  titleBoost: envWeight("SEARCH_TITLE_BOOST", 5),
 };
 
 type SearchFilters = {
@@ -49,6 +89,9 @@ type SearchRow = {
   tags: string[];
   section: string;
   content: string;
+  title_match: boolean;
+  title_equal: boolean;
+  strict_match: boolean;
 };
 
 type SearchCandidate = {
@@ -113,42 +156,88 @@ async function keywordSearch(
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((term) => term.length >= 3);
-  const contentFallback =
-    terms.length > 0
-      ? Prisma.sql`OR (${Prisma.join(
-          terms.map((term) => Prisma.sql`pc."content" ILIKE ${`%${term}%`}`),
-          " OR ",
-        )})`
-      : Prisma.empty;
+  // A vague request like "i'm stuck on the grid problem that counts land
+  // areas" shares no full phrase with any chunk, so plainto_tsquery (AND)
+  // returns nothing. Fall back to an OR tsquery, but drop the conversational
+  // filler first so "stuck"/"problem"/"help" do not dominate the match.
+  const fallbackTerms = terms.filter(
+    (term) => !FALLBACK_STOPWORDS.has(term),
+  );
+  const effectiveFallbackTerms =
+    fallbackTerms.length > 0 ? fallbackTerms : terms;
+  const fallbackQuery =
+    effectiveFallbackTerms.length > 0
+      ? Prisma.sql`to_tsquery('english', ${effectiveFallbackTerms.join(" | ")})`
+      : Prisma.sql`plainto_tsquery('english', ${query})`;
 
-  return prisma.$queryRaw<SearchRow[]>(Prisma.sql`
-    SELECT ${sharedSelection}
+  // Users type problem names ("Two Sum"), but titles are not part of any chunk,
+  // so a content-only query misses them entirely. Match and rank the title too.
+  const titleQuery = Prisma.sql`plainto_tsquery('english', ${query})`;
+  const titleMatch = Prisma.sql`to_tsvector('english', p."title") @@ ${titleQuery}`;
+  const titleExact = Prisma.sql`p."title" ILIKE ${`%${query.trim()}%`}`;
+  const titleEqual = Prisma.sql`lower(p."title") = lower(${query.trim()})`;
+  const strictMatch = Prisma.sql`(
+    pc."tsv" @@ plainto_tsquery('english', ${query})
+    OR ${titleMatch}
+  )`;
+
+  const rows = await prisma.$queryRaw<SearchRow[]>(Prisma.sql`
+    SELECT ${sharedSelection},
+      ${titleMatch} AS title_match,
+      ${titleEqual} AS title_equal,
+      ${strictMatch} AS strict_match
     FROM "problem_chunk" pc
     INNER JOIN "problem" p ON p."id" = pc."problemId"
     LEFT JOIN "problem_pattern" pp ON pp."problemId" = p."id"
     LEFT JOIN "pattern" pattern ON pattern."id" = pp."patternId"
     WHERE (
-      pc."tsv" @@ plainto_tsquery('english', ${query})
-      OR (
-        pc."tsv" IS NULL
-        AND to_tsvector('english', pc."content") @@ plainto_tsquery('english', ${query})
-      )
-      ${contentFallback}
+      ${strictMatch}
+      OR pc."tsv" @@ ${fallbackQuery}
+      OR ${titleExact}
     )
       ${filterSql(filters)}
     GROUP BY pc."id", p."id", pc."section", pc."content"
-    ORDER BY ts_rank_cd(
-      COALESCE(NULLIF(pc."tsv", ''::tsvector), to_tsvector('english', pc."content")),
-      plainto_tsquery('english', ${query})
-    ) * CASE pc."section"
-      WHEN 'statement' THEN 1.5
-      WHEN 'approach' THEN 1.3
-      WHEN 'complexity' THEN 1.15
-      WHEN 'editorial' THEN 1.1
-      ELSE 0.45
-    END DESC
+    ORDER BY
+      -- Rank in tiers so a fuzzy fallback hit can never beat an exact match.
+      CASE
+        WHEN ${titleEqual} THEN 3
+        WHEN ${titleExact} THEN 2
+        WHEN ${strictMatch} THEN 1
+        ELSE 0
+      END DESC,
+      (
+        ts_rank_cd(
+          COALESCE(NULLIF(pc."tsv", ''::tsvector), to_tsvector('english', pc."content")),
+          plainto_tsquery('english', ${query})
+        ) * CASE pc."section"
+          WHEN 'statement' THEN 1.5
+          WHEN 'approach' THEN 1.3
+          WHEN 'complexity' THEN 1.15
+          WHEN 'editorial' THEN 1.1
+          ELSE 0.45
+        END
+        + CASE
+          WHEN ${strictMatch} THEN 0
+          ELSE ts_rank_cd(
+            COALESCE(NULLIF(pc."tsv", ''::tsvector), to_tsvector('english', pc."content")),
+            ${fallbackQuery}
+          ) * CASE pc."section"
+            WHEN 'statement' THEN 0.75
+            WHEN 'approach' THEN 0.65
+            WHEN 'complexity' THEN 0.575
+            WHEN 'editorial' THEN 0.55
+            ELSE 0.225
+          END
+        END
+        + ts_rank_cd(to_tsvector('english', p."title"), ${titleQuery}) * 0.5
+      ) DESC
     LIMIT ${CANDIDATE_LIMIT}
   `);
+
+  // A strict match means the query's terms actually occur (or the title
+  // matched). Only fall back to fuzzy term overlap when nothing did.
+  const hasStrictMatch = rows.some((row) => row.strict_match);
+  return hasStrictMatch ? rows.filter((row) => row.strict_match) : rows;
 }
 
 async function embedQuery(query: string) {
@@ -179,7 +268,7 @@ async function vectorSearch(
   filters: SearchFilters,
 ) {
   return prisma.$queryRaw<SearchRow[]>(Prisma.sql`
-    SELECT ${sharedSelection}
+    SELECT ${sharedSelection}, FALSE AS title_match, FALSE AS title_equal, FALSE AS strict_match
     FROM "problem_chunk" pc
     INNER JOIN "problem" p ON p."id" = pc."problemId"
     LEFT JOIN "problem_pattern" pp ON pp."problemId" = p."id"
@@ -211,9 +300,19 @@ function mergeResults(keywordRows: SearchRow[], vectorRows: SearchRow[]) {
         matchedSections: new Set<string>(),
       };
 
+      // Title matches are an exact name hit; body-keyword overlap is weak.
+      const titleWeight = row.title_equal
+        ? sourceWeights.titleBoost
+        : row.title_match
+          ? 1
+          : 0;
+      const sourceWeight =
+        kind === "keyword"
+          ? sourceWeights.keyword * titleWeight
+          : sourceWeights.vector;
+
       current.score +=
-        (sourceWeights[kind] * (sectionWeights[row.section] ?? 1)) /
-        (RRF_K + rank);
+        (sourceWeight * (sectionWeights[row.section] ?? 1)) / (RRF_K + rank);
       current.matchedSections.add(row.section);
       if (kind === "keyword")
         current.keywordRank = Math.min(current.keywordRank ?? Infinity, rank);
@@ -384,12 +483,21 @@ export async function searchProblems(
     );
   }
 
+  // In fusion, body-keyword overlap is too noisy to act as an independent
+// ranking signal: on paraphrases it promotes plausible-looking wrong problems.
+// Lexical matches therefore only join the fused list when they hit a problem
+// title, while keyword-only mode still searches full text.
+  const fusionKeywordRows =
+    mode === "keyword" || !vectorSearchAvailable
+      ? keywordRows
+      : keywordRows.filter((row) => row.title_match);
+
   const mergedResults =
     mode === "keyword"
       ? mergeResults(keywordRows, [])
       : mode === "vector"
         ? mergeResults([], vectorRows)
-        : mergeResults(keywordRows, vectorRows);
+        : mergeResults(fusionKeywordRows, vectorRows);
   let rerankedResults = mergedResults.slice(0, RESULT_LIMIT);
   let rerankingAvailable = false;
   let rerankingError: string | undefined;
