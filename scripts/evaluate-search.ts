@@ -76,7 +76,55 @@ function recallAt(results: string[], expected: string[], k: number) {
   return expected.filter((slug) => returned.has(slug)).length / expected.length;
 }
 
+function rerankDelayMs() {
+  const argument = process.argv.find((value) =>
+    value.startsWith("--delay-ms="),
+  );
+  if (!argument) return 0;
+
+  const delay = Number(argument.slice("--delay-ms=".length));
+  if (!Number.isFinite(delay) || delay < 0) {
+    throw new Error("--delay-ms must be a non-negative number.");
+  }
+  return delay;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const ALL_MODES: SearchMode[] = ["keyword", "vector", "hybrid", "reranked"];
+
+function selectedModes() {
+  const argument = process.argv.find((value) =>
+    value.startsWith("--modes="),
+  );
+  if (!argument) return ALL_MODES;
+
+  const requested = argument
+    .slice("--modes=".length)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (!requested.length) {
+    throw new Error("--modes must include at least one mode.");
+  }
+
+  const invalid = requested.filter(
+    (mode) => !ALL_MODES.includes(mode as SearchMode),
+  );
+  if (invalid.length) {
+    throw new Error(
+      `Unknown search mode(s): ${invalid.join(", ")}. Use ${ALL_MODES.join(", ")}.`,
+    );
+  }
+
+  return [...new Set(requested)] as SearchMode[];
+}
+
 async function main() {
+  const delayMs = rerankDelayMs();
+  const modes = selectedModes();
   const expectedSlugs = [...new Set(goldenCases.flatMap((testCase) => testCase.expectedSlugs))];
   const knownProblems = await prisma.problem.findMany({
     where: { slug: { in: expectedSlugs } },
@@ -92,7 +140,9 @@ async function main() {
   }
 
   console.log(`Evaluating ${goldenCases.length} golden queries`);
-  const modes: SearchMode[] = ["keyword", "vector", "hybrid", "reranked"];
+  if (delayMs > 0) {
+    console.log(`Waiting ${delayMs} ms between reranked queries.`);
+  }
   const summaries = [];
 
   for (const mode of modes) {
@@ -101,9 +151,17 @@ async function main() {
     let mrr = 0;
     let top1 = 0;
     let rerankedAvailable = 0;
+    let rerankFailures = 0;
 
-    for (const testCase of goldenCases) {
+    for (const [index, testCase] of goldenCases.entries()) {
+      if (mode === "reranked" && delayMs > 0) await sleep(delayMs);
+      if (mode === "reranked" && (index + 1) % 20 === 0) {
+        console.log(`${mode}: ${index + 1}/${goldenCases.length}`);
+      }
       const response = await searchProblems(prisma, testCase.query, {}, mode);
+      if (mode === "reranked" && !response.rerankingAvailable) {
+        rerankFailures += 1;
+      }
       const resultSlugs = response.results.map((result) => result.slug);
       recall5 += recallAt(resultSlugs, testCase.expectedSlugs, 5);
       recall8 += recallAt(resultSlugs, testCase.expectedSlugs, 8);
@@ -121,15 +179,31 @@ async function main() {
       recallAt8: Number((recall8 / total).toFixed(3)),
       mrr: Number((mrr / total).toFixed(3)),
       rerankingAvailableQueries: rerankedAvailable,
+      ...(mode === "reranked" ? { rerankFailures } : {}),
     };
     summaries.push(summary);
     console.log(JSON.stringify({ summary }));
+
+    if (mode === "reranked" && rerankFailures > 0) {
+      console.warn(
+        `${rerankFailures} reranked queries fell back to RRF results. ` +
+          "Increase --delay-ms before treating this row as a reranked measurement.",
+      );
+    }
+  }
+
+  if (modes.length !== ALL_MODES.length) {
+    console.log(
+      `Partial run (${modes.join(", ")}); leaving reports/search-evaluation.json unchanged.`,
+    );
+    return;
   }
 
   const report = {
     generatedAt: new Date().toISOString(),
     queryCount: goldenCases.length,
     targetCount: expectedSlugs.length,
+    rerankDelayMs: delayMs,
     summaries,
   };
   await mkdir("reports", { recursive: true });

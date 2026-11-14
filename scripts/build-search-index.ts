@@ -14,7 +14,9 @@ async function main() {
 
   console.log(`Updated full-text vectors for ${updated} problem chunks.`);
   console.log(`Chunks with populated tsv: ${populated[0]?.count ?? 0}.`);
-  console.log("Full-text GIN index is ready; the vector HNSW index is managed by Prisma migrations.");
+  console.log(
+    "Search indexes (GIN on tsv, HNSW on embedding) are managed by Prisma migrations.",
+  );
 }
 
 main()

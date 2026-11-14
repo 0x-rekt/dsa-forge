@@ -32,6 +32,34 @@ measured results to `reports/search-evaluation.json`. Commit that generated
 report when recording an evaluation run; do not claim target numbers before
 running it locally.
 
+The reranker has a per-minute token limit, so the reranked pass can be spaced
+out. Any request that falls back to RRF results is counted in
+`rerankFailures`; do not treat a row with failures as a reranked measurement:
+
+```bash
+npm run search:eval -- --delay-ms=5000
+```
+
+Use `--modes=hybrid,reranked` for a partial run while tuning; partial runs never
+overwrite `reports/search-evaluation.json`.
+
+### Retrieval tuning
+
+Keyword and vector lists do not contribute equally to RRF. Keyword matching is
+much weaker on paraphrase queries, so it is down-weighted by default; the
+reranker is fused with retrieval rank rather than replacing it. All three
+weights are environment overrides:
+
+| Variable | Default | Effect |
+|---|---:|---|
+| `SEARCH_KEYWORD_WEIGHT` | `0.2` | Weight of the full-text list in RRF |
+| `SEARCH_VECTOR_WEIGHT` | `1` | Weight of the embedding list in RRF |
+| `SEARCH_RERANK_WEIGHT` | `1` | Weight of the reranker order when fused with retrieval rank |
+
+`JINA_RERANK_MODEL` selects the cross-encoder; the default is
+`jina-reranker-v3.5`. The reranker receives the top 20 merged problems and only
+reorders within those candidates, so it cannot erase a strong retrieval hit.
+
 ## Tutor answer cache
 
 Normal tutor answers use the Postgres `answer_cache` table with this exact key:

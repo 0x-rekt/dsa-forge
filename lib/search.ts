@@ -4,16 +4,31 @@ import { GoogleGenAI } from "@google/genai";
 const RRF_K = 60;
 const RESULT_LIMIT = 8;
 const CANDIDATE_LIMIT = 40;
+const RERANK_CANDIDATE_LIMIT = 20;
 const embeddingModel =
   process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001";
 const rerankerModel =
-  process.env.JINA_RERANK_MODEL ?? "jina-reranker-v2-base-multilingual";
+  process.env.JINA_RERANK_MODEL ?? "jina-reranker-v3.5";
 const sectionWeights: Record<string, number> = {
   statement: 1.5,
   approach: 1.3,
   complexity: 1.15,
   editorial: 1.1,
   code: 0.45,
+};
+
+// Keyword matching is materially weaker than embedding search on paraphrase
+// queries, so the two lists must not contribute equally to RRF. Vector hits
+// still need keyword support for exact names, hence a non-zero keyword weight.
+function envWeight(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+const sourceWeights = {
+  keyword: envWeight("SEARCH_KEYWORD_WEIGHT", 0.2),
+  vector: envWeight("SEARCH_VECTOR_WEIGHT", 1),
+  rerank: envWeight("SEARCH_RERANK_WEIGHT", 1),
 };
 
 type SearchFilters = {
@@ -197,7 +212,8 @@ function mergeResults(keywordRows: SearchRow[], vectorRows: SearchRow[]) {
       };
 
       current.score +=
-        (sectionWeights[row.section] ?? 1) / (RRF_K + rank);
+        (sourceWeights[kind] * (sectionWeights[row.section] ?? 1)) /
+        (RRF_K + rank);
       current.matchedSections.add(row.section);
       if (kind === "keyword")
         current.keywordRank = Math.min(current.keywordRank ?? Infinity, rank);
@@ -212,7 +228,22 @@ function mergeResults(keywordRows: SearchRow[], vectorRows: SearchRow[]) {
   const distinctProblems = new Set<string>();
 
   return [...candidates.values()]
-    .sort((left, right) => right.score - left.score)
+    .sort((left, right) => {
+      const scoreDelta = right.score - left.score;
+      if (Math.abs(scoreDelta) > 1e-9) return scoreDelta;
+
+      // Equal RRF scores should resolve towards the stronger source rather
+      // than the order the lists were merged in.
+      const vectorDelta =
+        (left.vectorRank ?? Infinity) - (right.vectorRank ?? Infinity);
+      if (vectorDelta !== 0) return vectorDelta;
+
+      const keywordDelta =
+        (left.keywordRank ?? Infinity) - (right.keywordRank ?? Infinity);
+      if (keywordDelta !== 0) return keywordDelta;
+
+      return left.row.slug.localeCompare(right.row.slug);
+    })
     .map(({ row, keywordRank, vectorRank, matchedSections, score }) => ({
       chunkId: row.chunk_id,
       problemId: row.problem_id,
@@ -262,7 +293,7 @@ async function rerankResults(
         (result) =>
           `Title: ${result.title}\nTags: ${result.tags.join(", ")}\nSection: ${result.section}\nContent:\n${result.content}`,
       ),
-      top_n: RESULT_LIMIT,
+      top_n: results.length,
       return_documents: false,
     }),
   });
@@ -280,28 +311,38 @@ async function rerankResults(
   if (!body.results)
     throw new Error("Reranker response did not include results");
 
-  return {
-    available: true,
-    results: body.results
-      .filter(
-        (item) =>
-          Number.isInteger(item.index) &&
-          item.index >= 0 &&
-          item.index < results.length,
-      )
-      .map((item) => ({
-        result: results[item.index],
-        score:
-          item.relevance_score *
-          (sectionWeights[results[item.index].section] ?? 1),
-      }))
-      .sort((left, right) => right.score - left.score)
-      .slice(0, RESULT_LIMIT)
-      .map(({ result, score }) => ({
-        ...result,
-        score: Number(score.toFixed(6)),
-      })),
-  };
+  const ranked = body.results
+    .filter(
+      (item) =>
+        Number.isInteger(item.index) &&
+        item.index >= 0 &&
+        item.index < results.length,
+    )
+    .sort((left, right) => right.relevance_score - left.relevance_score)
+    .map((item, rerankIndex) => ({
+      result: results[item.index],
+      retrievalRank: item.index + 1,
+      rerankRank: rerankIndex + 1,
+    }));
+
+  // Fuse the cross-encoder order with retrieval order instead of replacing it
+  // outright. A single bad reranker decision can then demote, but not erase,
+  // a strong retrieval hit.
+  const fused = ranked
+    .map(({ result, retrievalRank, rerankRank }) => ({
+      result,
+      score:
+        1 / (RRF_K + retrievalRank) +
+        sourceWeights.rerank / (RRF_K + rerankRank),
+    }))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, RESULT_LIMIT)
+    .map(({ result, score }) => ({
+      ...result,
+      score: Number(score.toFixed(6)),
+    }));
+
+  return { available: true, results: fused };
 }
 
 export async function searchProblems(
@@ -364,7 +405,10 @@ export async function searchProblems(
       };
     }
 
-    const reranked = await rerankResults(query, mergedResults);
+    const reranked = await rerankResults(
+      query,
+      mergedResults.slice(0, RERANK_CANDIDATE_LIMIT),
+    );
     rerankedResults = reranked.results;
     rerankingAvailable = reranked.available;
   } catch (error) {
