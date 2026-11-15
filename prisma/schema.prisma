@@ -219,6 +219,10 @@ model AnswerCache {
   answer    String
   createdAt DateTime @default(now())
   expiresAt DateTime
+  // Vector of the normalized question, used for the 0.95-similarity lookup
+  // before generation. Prisma cannot write Unsupported columns, so the cache
+  // row is inserted normally and the vector is set by raw SQL.
+  queryEmbedding Unsupported("vector(768)")?
   problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([problemId, hintLevel, queryText])
@@ -245,17 +249,21 @@ model QueryLog {
   userId      String?
   problemId   String?
   query       String
+  source      String   @default("search")
   cacheHit    Boolean  @default(false)
   retrievalMs Int?
   llmMs       Int?
   totalMs     Int?
+  ttftMs      Int?
   tokensIn    Int?
   tokensOut   Int?
+  error       String?
   createdAt   DateTime @default(now())
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   problem     Problem? @relation(fields: [problemId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([createdAt])
+  @@index([source, createdAt])
   @@map("query_log")
 }

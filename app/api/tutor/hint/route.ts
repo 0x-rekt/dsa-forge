@@ -1,12 +1,15 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { elapsedMs, errorMessage, recordQueryLog } from "@/lib/query-log";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   buildTutorPrompt,
   createTutorModel,
   getTutorContext,
   requireTutorApiKey,
+  tutorModel,
+  TUTOR_PROMPT_VERSION,
 } from "@/lib/tutor";
 
 const MIN_LEVEL = 1;
@@ -14,7 +17,7 @@ const MAX_LEVEL = 4;
 const HINT_CACHE_DAYS = 30;
 
 function hintCacheKey(level: number) {
-  return `__hint_level_${level}__`;
+  return `__hint_v${TUTOR_PROMPT_VERSION}_level_${level}__`;
 }
 
 export async function POST(request: Request) {
@@ -67,11 +70,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const context = await getTutorContext(prisma, slug, question);
+    const startedAt = performance.now();
+    const context = await getTutorContext(prisma, slug);
+    const retrievalMs = elapsedMs(startedAt);
+
     if (!context) {
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        query: question,
+        source: "tutor-hint",
+        retrievalMs,
+        error: "Problem not found.",
+      });
       return Response.json({ error: "Problem not found." }, { status: 404 });
     }
     if (!context.sources.length) {
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        problemId: context.problem.id,
+        query: question,
+        source: "tutor-hint",
+        retrievalMs,
+        error: "No indexed material for this problem.",
+      });
       return Response.json(
         { error: "There is not enough indexed material to generate a hint." },
         { status: 422 },
@@ -149,6 +170,16 @@ export async function POST(request: Request) {
         },
       });
 
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        problemId: context.problem.id,
+        query: question,
+        source: "tutor-hint",
+        cacheHit: true,
+        retrievalMs,
+        totalMs: elapsedMs(startedAt),
+      });
+
       return Response.json({
         problem: context.problem,
         level: nextLevel,
@@ -172,10 +203,12 @@ export async function POST(request: Request) {
     }
 
     const apiKey = requireTutorApiKey();
+    const llmStartedAt = performance.now();
     const response = await createTutorModel(apiKey).models.generateContent({
-      model: process.env.GEMINI_TUTOR_MODEL ?? "gemini-2.5-flash",
+      model: tutorModel,
       contents: buildTutorPrompt(context, question, nextLevel),
     });
+    const llmMs = elapsedMs(llmStartedAt);
     const hint = response.text?.trim();
     if (!hint) {
       throw new Error("Tutor returned an empty hint.");
@@ -221,6 +254,18 @@ export async function POST(request: Request) {
       },
     });
 
+    await recordQueryLog(prisma, {
+      userId: session.user.id,
+      problemId: context.problem.id,
+      query: question,
+      source: "tutor-hint",
+      retrievalMs,
+      llmMs,
+      totalMs: elapsedMs(startedAt),
+      tokensIn: response.usageMetadata?.promptTokenCount,
+      tokensOut: response.usageMetadata?.candidatesTokenCount,
+    });
+
     return Response.json({
       problem: context.problem,
       level: nextLevel,
@@ -230,6 +275,12 @@ export async function POST(request: Request) {
       cached: false,
     });
   } catch (error) {
+    await recordQueryLog(prisma, {
+      userId: session.user.id,
+      query: question,
+      source: "tutor-hint",
+      error: errorMessage(error),
+    });
     if (error instanceof Error && error.message === "GEMINI_API_KEY is not configured.") {
       return Response.json(
         { error: "Tutor is not configured. Set GEMINI_API_KEY first." },

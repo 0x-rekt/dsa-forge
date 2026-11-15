@@ -1,7 +1,12 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { elapsedMs, errorMessage, recordQueryLog } from "@/lib/query-log";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  lookupSemanticAnswer,
+  storeSemanticAnswerEmbedding,
+} from "@/lib/semantic-cache";
 import {
   buildTutorPrompt,
   createTutorModel,
@@ -67,12 +72,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const context = await getTutorContext(prisma, slug, question);
+    const startedAt = performance.now();
+    const context = await getTutorContext(prisma, slug);
+    const retrievalMs = elapsedMs(startedAt);
 
     if (!context) {
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        query: question,
+        source: "tutor-ask",
+        retrievalMs,
+        error: "Problem not found.",
+      });
       return Response.json({ error: "Problem not found." }, { status: 404 });
     }
     if (!context.sources.length) {
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        problemId: context.problem.id,
+        query: question,
+        source: "tutor-ask",
+        retrievalMs,
+        error: "No indexed material for this question.",
+      });
       return Response.json(
         { error: "There is not enough indexed material to answer this question." },
         { status: 422 },
@@ -103,7 +125,34 @@ export async function POST(request: Request) {
       });
     }
 
-    if (cachedAnswer && cachedAnswer.expiresAt > new Date()) {
+    let cacheHit:
+      | { answer: string; kind: "exact" | "semantic"; similarity?: number }
+      | null =
+      cachedAnswer && cachedAnswer.expiresAt > new Date()
+        ? { answer: cachedAnswer.answer, kind: "exact" }
+        : null;
+    // Reuse the lookup embedding when the answer has to be generated, so a
+    // semantic miss costs one embedding call rather than two.
+    let questionEmbedding: string | null = null;
+
+    if (!cacheHit) {
+      const semantic = await lookupSemanticAnswer(
+        context.problem.id,
+        0,
+        question,
+      );
+      questionEmbedding = semantic.embedding;
+      if (semantic.hit) {
+        cacheHit = {
+          answer: semantic.hit.answer,
+          kind: "semantic",
+          similarity: semantic.hit.similarity,
+        };
+      }
+    }
+
+    if (cacheHit) {
+      const hit = cacheHit;
       const encoder = new TextEncoder();
       const cachedReadable = new ReadableStream({
         start(controller) {
@@ -113,11 +162,27 @@ export async function POST(request: Request) {
             problem: context.problem,
             citations: context.sources,
             cached: true,
+            cacheType: hit.kind,
+            ...(hit.similarity === undefined
+              ? {}
+              : { similarity: hit.similarity }),
           });
-          send("token", { text: cachedAnswer.answer });
+          send("token", { text: hit.answer });
           send("done", { cached: true });
           controller.close();
         },
+      });
+
+      const totalMs = elapsedMs(startedAt);
+      await recordQueryLog(prisma, {
+        userId: session.user.id,
+        problemId: context.problem.id,
+        query: question,
+        source: "tutor-ask",
+        cacheHit: true,
+        retrievalMs,
+        totalMs,
+        ttftMs: totalMs,
       });
 
       return new Response(cachedReadable, {
@@ -132,11 +197,13 @@ export async function POST(request: Request) {
 
     const apiKey = requireTutorApiKey();
     const model = createTutorModel(apiKey);
+    const llmStartedAt = performance.now();
     const stream = await model.models.generateContentStream({
       model: tutorModel,
       contents: buildTutorPrompt(context, question),
     });
 
+    const embeddingForCache = questionEmbedding;
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
@@ -150,11 +217,20 @@ export async function POST(request: Request) {
 
         try {
           let answer = "";
+          let tokensIn: number | undefined;
+          let tokensOut: number | undefined;
+          let ttftMs: number | undefined;
           for await (const chunk of stream) {
             const text = chunk.text;
             if (text) {
+              ttftMs ??= elapsedMs(startedAt);
               answer += text;
               send("token", { text });
+            }
+            const usage = chunk.usageMetadata;
+            if (usage) {
+              tokensIn = usage.promptTokenCount ?? tokensIn;
+              tokensOut = usage.candidatesTokenCount ?? tokensOut;
             }
           }
           if (answer.trim()) {
@@ -182,11 +258,42 @@ export async function POST(request: Request) {
                 ),
               },
             });
+
+            if (embeddingForCache) {
+              await storeSemanticAnswerEmbedding(
+                context.problem.id,
+                0,
+                cacheKey,
+                embeddingForCache,
+              );
+            }
           }
           send("done", {});
+          await recordQueryLog(prisma, {
+            userId: session.user.id,
+            problemId: context.problem.id,
+            query: question,
+            source: "tutor-ask",
+            retrievalMs,
+            llmMs: elapsedMs(llmStartedAt),
+            totalMs: elapsedMs(startedAt),
+            ttftMs,
+            tokensIn,
+            tokensOut,
+          });
           controller.close();
         } catch (error) {
           console.error("Tutor stream failed", error);
+          await recordQueryLog(prisma, {
+            userId: session.user.id,
+            problemId: context.problem.id,
+            query: question,
+            source: "tutor-ask",
+            retrievalMs,
+            llmMs: elapsedMs(llmStartedAt),
+            totalMs: elapsedMs(startedAt),
+            error: errorMessage(error),
+          });
           send("error", { error: "The tutor stream was interrupted." });
           controller.close();
         }
@@ -202,6 +309,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    await recordQueryLog(prisma, {
+      userId: session.user.id,
+      query: question,
+      source: "tutor-ask",
+      error: errorMessage(error),
+    });
     if (error instanceof Error && error.message === "GEMINI_API_KEY is not configured.") {
       return Response.json(
         { error: "Tutor is not configured. Set GEMINI_API_KEY first." },

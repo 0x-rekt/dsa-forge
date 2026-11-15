@@ -33,6 +33,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# evaluation checkpoints and degraded reports
+/reports/*.checkpoint.json
+/reports/*.partial.json
+/reports/*.partial.md
+
 # env files (can opt-in for committing if needed)
 .env*
 

@@ -1,15 +1,18 @@
-import { createTutorModel, requireTutorApiKey, type TutorContext } from "@/lib/tutor";
+import { createTutorModel, requireTutorApiKey, tutorModel, type TutorContext } from "@/lib/tutor";
 import { runPythonCode, type CodeRunResult, type CodeTest } from "@/lib/code-runner";
 
 const MAX_RETRIES = 2;
-const MODEL = process.env.GEMINI_TUTOR_MODEL ?? "gemini-2.5-flash";
+const MODEL = tutorModel;
 
 export type GeneratedCodeRun = {
   code: string;
   verdict: "passed" | "failed" | "error" | "timeout";
   results: CodeRunResult[];
   executionMs: number;
+  setupMs: number;
   attempts: number;
+  tokensIn: number;
+  tokensOut: number;
 };
 
 function cleanCode(text: string) {
@@ -89,19 +92,33 @@ export async function generateAndVerifyPython(
   let code = "";
   let feedback = "";
   let totalExecutionMs = 0;
+  let totalSetupMs = 0;
+  let tokensIn = 0;
+  let tokensOut = 0;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     const response = await model.models.generateContent({
       model: MODEL,
       contents: buildGenerationPrompt(context, request, code || undefined, feedback || undefined),
     });
+    tokensIn += response.usageMetadata?.promptTokenCount ?? 0;
+    tokensOut += response.usageMetadata?.candidatesTokenCount ?? 0;
     code = cleanCode(response.text ?? "");
     if (!code) throw new Error("Tutor returned empty code.");
 
     const run = await runPythonCode(code, tests, tags, sampleInput);
     totalExecutionMs += run.executionMs;
+    totalSetupMs += run.setupMs;
     if (run.verdict === "passed" || attempt === MAX_RETRIES) {
-      return { ...run, code, executionMs: totalExecutionMs, attempts: attempt + 1 };
+      return {
+        ...run,
+        code,
+        executionMs: totalExecutionMs,
+        setupMs: totalSetupMs,
+        attempts: attempt + 1,
+        tokensIn,
+        tokensOut,
+      };
     }
 
     feedback = failureFeedback(run.results, tests);

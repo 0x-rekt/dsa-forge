@@ -46,7 +46,10 @@ export async function runPythonCode(
 ): Promise<{
   verdict: "passed" | "failed" | "error" | "timeout";
   results: CodeRunResult[];
+  /** Sum of per-test runtimes; excludes sandbox creation and file upload. */
   executionMs: number;
+  /** Sandbox creation, upload, and runner setup, measured before the first test. */
+  setupMs: number;
 }> {
   const startedAt = Date.now();
   const contract = getPythonProblemContract({ tags, sampleInput });
@@ -81,6 +84,16 @@ print(json.dumps(result, separators=(",", ":")))
     ]);
 
     const results: CodeRunResult[] = [];
+    const setupMs = Date.now() - startedAt;
+    // Report code time separately from sandbox startup; a 30 s cold start would
+    // otherwise be indistinguishable from a slow solution.
+    const totals = () => ({
+      executionMs: results.reduce(
+        (total, result) => total + result.executionMs,
+        0,
+      ),
+      setupMs,
+    });
     for (let index = 0; index < tests.length; index += 1) {
       const test = tests[index];
       const testStartedAt = Date.now();
@@ -117,7 +130,7 @@ print(json.dumps(result, separators=(",", ":")))
           return {
             verdict: "error",
             results,
-            executionMs: Date.now() - startedAt,
+            ...totals(),
           };
         }
       } catch (error) {
@@ -134,7 +147,7 @@ print(json.dumps(result, separators=(",", ":")))
           return {
             verdict: "timeout",
             results,
-            executionMs: Date.now() - startedAt,
+            ...totals(),
           };
         }
         throw error;
@@ -144,7 +157,7 @@ print(json.dumps(result, separators=(",", ":")))
         return {
           verdict: "failed",
           results,
-          executionMs: Date.now() - startedAt,
+          ...totals(),
         };
       }
     }
@@ -152,7 +165,7 @@ print(json.dumps(result, separators=(",", ":")))
     return {
       verdict: "passed",
       results,
-      executionMs: Date.now() - startedAt,
+      ...totals(),
     };
   } finally {
     await sandbox.stop();

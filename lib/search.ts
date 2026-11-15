@@ -7,6 +7,7 @@ const CANDIDATE_LIMIT = 40;
 const RERANK_CANDIDATE_LIMIT = 20;
 const embeddingModel =
   process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-001";
+const hydeModel = process.env.GEMINI_HYDE_MODEL ?? "gemini-3.8-flash";
 const rerankerModel =
   process.env.JINA_RERANK_MODEL ?? "jina-reranker-v3.5";
 const sectionWeights: Record<string, number> = {
@@ -77,7 +78,30 @@ type SearchFilters = {
   platform?: string;
 };
 
-export type SearchMode = "keyword" | "vector" | "hybrid" | "reranked";
+export type SearchMode =
+  | "keyword"
+  | "vector"
+  | "hybrid"
+  | "reranked"
+  | "hyde"
+  | "hyde-reranked";
+
+export const SEARCH_MODES: SearchMode[] = [
+  "keyword",
+  "vector",
+  "hybrid",
+  "reranked",
+  "hyde",
+  "hyde-reranked",
+];
+
+export function modeUsesRerank(mode: SearchMode) {
+  return mode === "reranked" || mode === "hyde-reranked";
+}
+
+export function modeUsesHyde(mode: SearchMode) {
+  return mode === "hyde" || mode === "hyde-reranked";
+}
 
 type SearchRow = {
   chunk_id: string;
@@ -240,16 +264,19 @@ async function keywordSearch(
   return hasStrictMatch ? rows.filter((row) => row.strict_match) : rows;
 }
 
-async function embedQuery(query: string) {
+export async function embedText(
+  text: string,
+  taskType: "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT",
+) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.embedContent({
     model: embeddingModel,
-    contents: query,
+    contents: text,
     config: {
-      taskType: "RETRIEVAL_QUERY",
+      taskType,
       outputDimensionality: 768,
     },
   });
@@ -260,6 +287,71 @@ async function embedQuery(query: string) {
       `Expected a 768-dimensional query embedding, received ${values.length}`,
     );
   return `[${values.join(",")}]`;
+}
+
+function embedQuery(query: string) {
+  return embedText(query, "RETRIEVAL_QUERY");
+}
+
+// HyDE: ask the model for a hypothetical problem statement, then embed that
+// instead of the raw query. Vague requests ("I'm stuck on the grid one") are
+// far from any real statement, so the hypothetical text lands closer to the
+// indexed documents.
+async function generateHypotheticalProblem(query: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
+
+  const ai = new GoogleGenAI({ apiKey });
+  const response = await ai.models.generateContent({
+    model: hydeModel,
+    contents: [
+      "Rewrite the search query below as a short competitive-programming problem statement.",
+      "Write two to four sentences describing the input and the goal. Do not name the problem, do not add examples, and do not include a solution.",
+      `Query: ${query}`,
+    ].join("\n"),
+    config: {
+      temperature: 0.2,
+      maxOutputTokens: 300,
+      // Thinking tokens count against the output budget and were truncating
+      // the rewrite to a single sentence.
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  });
+
+  const text = response.text?.trim();
+  if (!text) throw new Error("HyDE generation returned no text.");
+  return text;
+}
+
+async function embedQueryWithHyde(query: string) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { vector: null as string | null, hydeUsed: false };
+
+  try {
+    const hypothetical = await withRetry(() => generateHypotheticalProblem(query));
+    const vector = await embedText(hypothetical, "RETRIEVAL_DOCUMENT");
+    return { vector, hydeUsed: vector !== null };
+  } catch (error) {
+    console.warn("HyDE unavailable; falling back to the raw query.", error);
+    return { vector: await embedQuery(query), hydeUsed: false };
+  }
+}
+
+async function withRetry<T>(run: () => Promise<T>, attempts = 3) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 async function vectorSearch(
@@ -370,15 +462,11 @@ function mergeResults(keywordRows: SearchRow[], vectorRows: SearchRow[]) {
     .slice(0, CANDIDATE_LIMIT);
 }
 
-async function rerankResults(
+async function requestRerank(
+  apiKey: string,
   query: string,
   results: ReturnType<typeof mergeResults>,
 ) {
-  const apiKey = process.env.JINA_API_KEY;
-  if (!apiKey || results.length === 0) {
-    return { results: results.slice(0, RESULT_LIMIT), available: false };
-  }
-
   const response = await fetch("https://api.jina.ai/v1/rerank", {
     method: "POST",
     headers: {
@@ -397,20 +485,42 @@ async function rerankResults(
     }),
   });
 
-  const body = (await response.json()) as {
-    results?: RerankResult[];
-    detail?: string;
-  };
+  // Jina occasionally answers with an HTML error page instead of JSON; retry
+  // those rather than dropping to RRF for the query.
+  const text = await response.text();
+  let body: { results?: RerankResult[]; detail?: string };
+  try {
+    body = JSON.parse(text) as { results?: RerankResult[]; detail?: string };
+  } catch {
+    throw new Error(
+      `Reranker returned a non-JSON response (${response.status})`,
+    );
+  }
   if (!response.ok) {
     throw new Error(
       body.detail ?? `Reranker request failed (${response.status})`,
     );
   }
-
   if (!body.results)
     throw new Error("Reranker response did not include results");
 
-  const ranked = body.results
+  return body.results;
+}
+
+async function rerankResults(
+  query: string,
+  results: ReturnType<typeof mergeResults>,
+) {
+  const apiKey = process.env.JINA_API_KEY;
+  if (!apiKey || results.length === 0) {
+    return { results: results.slice(0, RESULT_LIMIT), available: false };
+  }
+
+  const rerankItems = await withRetry(() =>
+    requestRerank(apiKey, query, results),
+  );
+
+  const ranked = rerankItems
     .filter(
       (item) =>
         Number.isInteger(item.index) &&
@@ -450,24 +560,37 @@ export async function searchProblems(
   filters: SearchFilters = {},
   mode: SearchMode = "reranked",
 ) {
+  const rerankEnabled = modeUsesRerank(mode);
+  const hydeEnabled = modeUsesHyde(mode);
   const keywordPromise =
     mode === "vector"
       ? Promise.resolve([] as SearchRow[])
       : keywordSearch(prisma, query, filters);
   const embeddingPromise =
     mode === "keyword"
-      ? Promise.resolve(null)
-      : embedQuery(query).catch((error: unknown) => {
-          console.warn(
-            "Vector embedding unavailable; returning keyword results.",
-            error,
-          );
-          return null;
-        });
-  const [keywordRows, vector] = await Promise.all([
+      ? Promise.resolve({ vector: null as string | null, hydeUsed: false })
+      : hydeEnabled
+        ? embedQueryWithHyde(query).catch((error: unknown) => {
+            console.warn(
+              "HyDE embedding unavailable; returning keyword results.",
+              error,
+            );
+            return { vector: null as string | null, hydeUsed: false };
+          })
+        : embedQuery(query)
+            .then((vector) => ({ vector, hydeUsed: false }))
+            .catch((error: unknown) => {
+              console.warn(
+                "Vector embedding unavailable; returning keyword results.",
+                error,
+              );
+              return { vector: null as string | null, hydeUsed: false };
+            });
+  const [keywordRows, embedding] = await Promise.all([
     keywordPromise,
     embeddingPromise,
   ]);
+  const vector = embedding.vector;
   let vectorRows: SearchRow[] = [];
   let vectorSearchAvailable = false;
 
@@ -484,9 +607,9 @@ export async function searchProblems(
   }
 
   // In fusion, body-keyword overlap is too noisy to act as an independent
-// ranking signal: on paraphrases it promotes plausible-looking wrong problems.
-// Lexical matches therefore only join the fused list when they hit a problem
-// title, while keyword-only mode still searches full text.
+  // ranking signal: on paraphrases it promotes plausible-looking wrong problems.
+  // Lexical matches therefore only join the fused list when they hit a problem
+  // title, while keyword-only mode still searches full text.
   const fusionKeywordRows =
     mode === "keyword" || !vectorSearchAvailable
       ? keywordRows
@@ -501,15 +624,17 @@ export async function searchProblems(
   let rerankedResults = mergedResults.slice(0, RESULT_LIMIT);
   let rerankingAvailable = false;
   let rerankingError: string | undefined;
+  const hydeFields = hydeEnabled ? { hydeUsed: embedding.hydeUsed } : {};
 
   try {
-    if (mode !== "reranked") {
+    if (!rerankEnabled) {
       return {
         results: rerankedResults,
         keywordMatches: keywordRows.length,
         vectorMatches: vectorRows.length,
         vectorSearchAvailable,
         rerankingAvailable: false,
+        ...hydeFields,
       };
     }
 
@@ -531,6 +656,7 @@ export async function searchProblems(
     vectorMatches: vectorRows.length,
     vectorSearchAvailable,
     rerankingAvailable,
+    ...hydeFields,
     ...(rerankingError ? { rerankingError } : {}),
   };
 }

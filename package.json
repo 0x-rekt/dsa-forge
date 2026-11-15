@@ -18,6 +18,11 @@
     "db:seed": "node --import tsx scripts/seed-dataset.ts",
     "progress:rebuild": "node --import tsx scripts/rebuild-progress.ts",
     "search:eval": "node --import tsx scripts/evaluate-search.ts",
+    "answers:eval": "node --import tsx scripts/evaluate-answers.ts",
+    "code:eval": "node --import tsx scripts/evaluate-code.ts",
+    "cache:test": "node --import tsx scripts/test-semantic-cache.ts",
+    "data:check": "node --import tsx scripts/check-data.ts",
+    "logs:report": "node --import tsx scripts/query-log-report.ts",
     "db:studio": "prisma studio",
     "auth:generate": "auth generate"
   },

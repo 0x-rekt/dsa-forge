@@ -1,6 +1,13 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { prisma } from "../lib/prisma";
-import { searchProblems, type SearchMode } from "../lib/search";
+import { errorMessage } from "../lib/query-log";
+import {
+  modeUsesHyde,
+  modeUsesRerank,
+  searchProblems,
+  SEARCH_MODES,
+  type SearchMode,
+} from "../lib/search";
 
 type QueryType = "reworded" | "exact-title" | "pasted-statement" | "partial";
 type GoldenSeed = { slug: string; queries: string[] };
@@ -216,6 +223,61 @@ function summarize(totals: MetricTotals) {
   };
 }
 
+type ModeSummary = ReturnType<typeof summarize> & {
+  mode: SearchMode;
+  rerankingAvailableQueries: number;
+  rerankFailures?: number;
+  hydeAvailableQueries?: number;
+  hydeFailures?: number;
+  byType: Record<QueryType, ReturnType<typeof summarize>>;
+};
+
+type Checkpoint = {
+  queryCount: number;
+  rerankDelayMs: number;
+  typeCounts: Record<QueryType, number>;
+  summaries: ModeSummary[];
+};
+
+const CHECKPOINT_PATH = "reports/search-evaluation.checkpoint.json";
+
+async function loadCheckpoint() {
+  try {
+    return JSON.parse(await readFile(CHECKPOINT_PATH, "utf8")) as Checkpoint;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCheckpoint(checkpoint: Checkpoint) {
+  await mkdir("reports", { recursive: true });
+  await writeFile(CHECKPOINT_PATH, `${JSON.stringify(checkpoint, null, 2)}\n`);
+}
+
+// A single transient database or network failure used to kill a 45-minute run.
+// Retry each query with backoff; completed modes are checkpointed separately.
+async function searchWithRetry(mode: SearchMode, query: string) {
+  const attempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await searchProblems(prisma, query, {}, mode);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) {
+        const waitMs = 2000 * 2 ** attempt;
+        console.warn(
+          `${mode} query failed; retrying in ${waitMs} ms: ${errorMessage(error)}`,
+        );
+        await sleep(waitMs);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 function rerankDelayMs() {
   const argument = process.argv.find((value) =>
     value.startsWith("--delay-ms="),
@@ -233,7 +295,18 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const ALL_MODES: SearchMode[] = ["keyword", "vector", "hybrid", "reranked"];
+function queryLimit() {
+  const argument = process.argv.find((value) => value.startsWith("--limit="));
+  if (!argument) return Number.POSITIVE_INFINITY;
+
+  const limit = Number(argument.slice("--limit=".length));
+  if (!Number.isInteger(limit) || limit <= 0) {
+    throw new Error("--limit must be a positive integer.");
+  }
+  return limit;
+}
+
+const ALL_MODES: SearchMode[] = SEARCH_MODES;
 
 function selectedModes() {
   const argument = process.argv.find((value) =>
@@ -265,7 +338,16 @@ function selectedModes() {
 async function main() {
   const delayMs = rerankDelayMs();
   const modes = selectedModes();
-  const { cases: goldenCases, typeCounts } = await buildGoldenSet();
+  const limit = queryLimit();
+  const { cases: allCases } = await buildGoldenSet();
+  const goldenCases =
+    limit === Number.POSITIVE_INFINITY ? allCases : allCases.slice(0, limit);
+  const typeCounts = Object.fromEntries(
+    QUERY_TYPES.map((type) => [
+      type,
+      goldenCases.filter((testCase) => testCase.type === type).length,
+    ]),
+  ) as Record<QueryType, number>;
   const expectedSlugs = [
     ...new Set(goldenCases.flatMap((testCase) => testCase.expectedSlugs)),
   ];
@@ -275,63 +357,132 @@ async function main() {
       (type) => `${type}: ${typeCounts[type]}`,
     ).join(", ")})`,
   );
+  if (Number.isFinite(limit)) {
+    console.log(`Limited to the first ${limit} queries.`);
+  }
   if (delayMs > 0) {
     console.log(`Waiting ${delayMs} ms between reranked queries.`);
   }
-  const summaries = [];
+  const summaries: ModeSummary[] = [];
+  // Any unlimited run can contribute to the checkpoint, so a mode that does
+  // not need the reranker (for example `hyde`) is not re-run later just
+  // because the reranked modes were unavailable.
+  const checkpointEligible = !Number.isFinite(limit);
+  const fresh = process.argv.includes("--fresh");
+
+  if (fresh) await rm(CHECKPOINT_PATH, { force: true });
+
+  const checkpoint =
+    checkpointEligible && !fresh ? await loadCheckpoint() : null;
+  const reusable =
+    checkpoint &&
+    checkpoint.queryCount === goldenCases.length &&
+    checkpoint.rerankDelayMs === delayMs &&
+    QUERY_TYPES.every(
+      (type) => checkpoint.typeCounts[type] === typeCounts[type],
+    )
+      ? new Map<SearchMode, ModeSummary>(
+          checkpoint.summaries.map((summary) => [summary.mode, summary]),
+        )
+      : new Map<SearchMode, ModeSummary>();
+  const checkpointSummaries = new Map(reusable);
+
+  if (reusable.size > 0) {
+    console.log(
+      `Resuming from checkpoint; reusing ${[...reusable.keys()].join(", ")}. ` +
+        "Pass --fresh to ignore it.",
+    );
+  }
 
   for (const mode of modes) {
+    const previous = reusable.get(mode);
+    if (previous) {
+      summaries.push(previous);
+      continue;
+    }
     const overall = emptyTotals();
     const byType = new Map<QueryType, MetricTotals>(
       QUERY_TYPES.map((type) => [type, emptyTotals()]),
     );
     let rerankedAvailable = 0;
     let rerankFailures = 0;
+    let hydeAvailable = 0;
+    let hydeFailures = 0;
 
     console.log(`Running ${mode}...`);
 
     for (const [index, testCase] of goldenCases.entries()) {
-      if (mode === "reranked" && delayMs > 0) await sleep(delayMs);
-      if (mode === "reranked" && (index + 1) % 50 === 0) {
+      if (modeUsesRerank(mode) && delayMs > 0) await sleep(delayMs);
+      if (modeUsesRerank(mode) && (index + 1) % 50 === 0) {
         console.log(`${mode}: ${index + 1}/${goldenCases.length}`);
       }
-      const response = await searchProblems(prisma, testCase.query, {}, mode);
-      if (mode === "reranked" && !response.rerankingAvailable) {
+      const response = await searchWithRetry(mode, testCase.query);
+      if (modeUsesRerank(mode) && !response.rerankingAvailable) {
         rerankFailures += 1;
+      }
+      if (modeUsesHyde(mode) && !response.hydeUsed) {
+        hydeFailures += 1;
       }
       const resultSlugs = response.results.map((result) => result.slug);
       addResult(overall, resultSlugs, testCase.expectedSlugs);
       const typeTotals = byType.get(testCase.type);
       if (typeTotals) addResult(typeTotals, resultSlugs, testCase.expectedSlugs);
       rerankedAvailable += response.rerankingAvailable ? 1 : 0;
+      hydeAvailable += response.hydeUsed ? 1 : 0;
     }
 
     const summary = {
       mode,
       ...summarize(overall),
       rerankingAvailableQueries: rerankedAvailable,
-      ...(mode === "reranked" ? { rerankFailures } : {}),
+      ...(modeUsesRerank(mode) ? { rerankFailures } : {}),
+      ...(modeUsesHyde(mode)
+        ? { hydeAvailableQueries: hydeAvailable, hydeFailures }
+        : {}),
       byType: Object.fromEntries(
         QUERY_TYPES.map((type) => [
           type,
           summarize(byType.get(type) ?? emptyTotals()),
         ]),
-      ),
+      ) as Record<QueryType, ReturnType<typeof summarize>>,
     };
     summaries.push(summary);
     console.log(JSON.stringify({ summary }));
 
-    if (mode === "reranked" && rerankFailures > 0) {
+    checkpointSummaries.set(mode, summary);
+    if (checkpointEligible) {
+      await saveCheckpoint({
+        queryCount: goldenCases.length,
+        rerankDelayMs: delayMs,
+        typeCounts,
+        summaries: [...checkpointSummaries.values()].sort(
+          (left, right) =>
+            ALL_MODES.indexOf(left.mode) - ALL_MODES.indexOf(right.mode),
+        ),
+      });
+    }
+
+    if (modeUsesRerank(mode) && rerankFailures > 0) {
       console.warn(
         `${rerankFailures} reranked queries fell back to RRF results. ` +
           "Increase --delay-ms before treating this row as a reranked measurement.",
       );
     }
+    if (modeUsesHyde(mode) && hydeFailures > 0) {
+      console.warn(
+        `${hydeFailures} HyDE queries fell back to the raw query embedding.`,
+      );
+    }
   }
+
+  summaries.sort(
+    (left, right) =>
+      ALL_MODES.indexOf(left.mode) - ALL_MODES.indexOf(right.mode),
+  );
 
   console.log("\nPer-type results");
   console.log(
-    "mode".padEnd(10) +
+    "mode".padEnd(15) +
       "type".padEnd(20) +
       "n".padStart(5) +
       "top1".padStart(8) +
@@ -343,7 +494,7 @@ async function main() {
     for (const type of QUERY_TYPES) {
       const metrics = summary.byType[type];
       console.log(
-        summary.mode.padEnd(10) +
+        summary.mode.padEnd(15) +
           type.padEnd(20) +
           String(metrics.queries).padStart(5) +
           metrics.top1Accuracy.toFixed(3).padStart(8) +
@@ -354,9 +505,11 @@ async function main() {
     }
   }
 
-  if (modes.length !== ALL_MODES.length) {
+  if (modes.length !== ALL_MODES.length || Number.isFinite(limit)) {
     console.log(
-      `Partial run (${modes.join(", ")}); leaving reports/search-evaluation.json unchanged.`,
+      `Partial run (${modes.join(", ")}${
+        Number.isFinite(limit) ? `, limit ${limit}` : ""
+      }); leaving reports/search-evaluation.json unchanged.`,
     );
     return;
   }
@@ -371,6 +524,7 @@ async function main() {
   };
   await mkdir("reports", { recursive: true });
   await writeFile("reports/search-evaluation.json", `${JSON.stringify(report, null, 2)}\n`);
+  await rm(CHECKPOINT_PATH, { force: true });
   console.log("Wrote reports/search-evaluation.json");
 }
 

@@ -1,11 +1,37 @@
 import { GoogleGenAI } from "@google/genai";
 import { PrismaClient } from "@/app/generated/prisma/client";
-import { searchProblems } from "@/lib/search";
 
 export const tutorModel =
-  process.env.GEMINI_TUTOR_MODEL ?? "gemini-2.5-flash";
+  process.env.GEMINI_TUTOR_MODEL ?? "gemini-3.8-flash";
 const MAX_SOURCES = 8;
 export const TUTOR_CACHE_DAYS = 30;
+
+// The tutor already knows which problem it is teaching, so global retrieval is
+// the wrong tool for selecting context: a top-8 search can omit this problem's
+// reference solution and leave the model with only the statement. Order the
+// problem's own chunks instead and keep all of them (the corpus averages five).
+const SECTION_PRIORITY: Record<string, number> = {
+  statement: 0,
+  approach: 1,
+  complexity: 2,
+  code: 3,
+  editorial: 4,
+};
+
+const PLACEHOLDER_PATTERNS: Record<string, RegExp> = {
+  approach: /pattern to transform the problem statement into a solution\.?$/i,
+  complexity:
+    /^Complexity depends on the constraints and the chosen implementation\.?$/i,
+};
+
+export function isPlaceholderChunk(section: string, content: string) {
+  const pattern = PLACEHOLDER_PATTERNS[section];
+  if (!pattern) return false;
+  const body = content
+    .replace(/^\s*(?:Approach|Complexity)\s*/i, "")
+    .trim();
+  return pattern.test(body);
+}
 
 export type TutorCitation = {
   id: string;
@@ -39,7 +65,6 @@ function excerpt(content: string) {
 export async function getTutorContext(
   prisma: PrismaClient,
   slug: string,
-  question: string,
 ) {
   const problem = await prisma.problem.findUnique({
     where: { slug },
@@ -61,23 +86,14 @@ export async function getTutorContext(
 
   if (!problem) return null;
 
-  const search = await searchProblems(
-    prisma,
-    `${problem.title}\n${question}`,
-    {},
-    "reranked",
-  );
-  const rankedChunks = search.results.filter(
-    (result) => result.problemId === problem.id,
-  );
-  const chunks = (rankedChunks.length
-    ? rankedChunks.map((result) => ({
-        id: result.chunkId,
-        section: result.section,
-        content: result.content,
-      }))
-    : problem.chunks
-  ).slice(0, MAX_SOURCES);
+  const chunks = problem.chunks
+    .filter((chunk) => !isPlaceholderChunk(chunk.section, chunk.content))
+    .sort(
+      (left, right) =>
+        (SECTION_PRIORITY[left.section] ?? 99) -
+        (SECTION_PRIORITY[right.section] ?? 99),
+    )
+    .slice(0, MAX_SOURCES);
 
   const sources = chunks.map((chunk, index) => ({
     id: chunk.id,
@@ -118,8 +134,12 @@ export function normalizeTutorQuestion(question: string) {
   return question.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
+// Bump when the prompt, grounding rules, or context construction change so a
+// cached answer generated under the old prompt is not served as if it were new.
+export const TUTOR_PROMPT_VERSION = "2";
+
 export function tutorAnswerCacheKey(question: string) {
-  return `__ask__${normalizeTutorQuestion(question)}`;
+  return `__ask_v${TUTOR_PROMPT_VERSION}__${normalizeTutorQuestion(question)}`;
 }
 
 export function buildTutorPrompt(
@@ -145,7 +165,10 @@ ${levelInstruction}
 
 Grounding rules:
 - Use only the supplied sources. Do not invent constraints, examples, APIs, or facts.
-- If the sources do not support the requested answer, say that the indexed material is insufficient.
+- Sources are labeled by section. The statement and constraints are authoritative. A reference solution may be supplied as code.
+- You may explain what the reference solution does and derive its complexity from its loops and data structures; cite that source.
+- Do not attribute an inference to a source that only implies it, and never claim an editorial states something it does not.
+- If the sources do not support the requested answer, say that the indexed material is insufficient. Do not fill the gap with outside knowledge.
 - Refer to supporting sources inline using the supplied labels, such as [Source 1].
 - Never claim that code was tested or verified.
 - Keep the response concise and useful for a learner.

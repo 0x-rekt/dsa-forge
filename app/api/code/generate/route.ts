@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const context = await getTutorContext(prisma, slug, requestText);
+    const context = await getTutorContext(prisma, slug);
     if (!context || !context.sources.length) {
       return Response.json(
         { error: "There is not enough indexed material to generate code." },

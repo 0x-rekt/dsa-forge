@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { elapsedMs, errorMessage, recordQueryLog } from "@/lib/query-log";
 import { searchProblems } from "@/lib/search";
 
 const difficulties = new Set(["Easy", "Medium", "Hard"]);
@@ -42,10 +43,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const startedAt = performance.now();
     const search = await searchProblems(prisma, query, {
       difficulty: difficulty as "Easy" | "Medium" | "Hard" | undefined,
       pattern: pattern || undefined,
       platform: platform || undefined,
+    });
+    const retrievalMs = elapsedMs(startedAt);
+
+    await recordQueryLog(prisma, {
+      userId: session.user.id,
+      query,
+      source: "search",
+      retrievalMs,
+      totalMs: retrievalMs,
     });
 
     return Response.json({
@@ -53,6 +64,12 @@ export async function POST(request: Request) {
       ...search,
     });
   } catch (error) {
+    await recordQueryLog(prisma, {
+      userId: session.user.id,
+      query,
+      source: "search",
+      error: errorMessage(error),
+    });
     console.error("Search failed", error);
     return Response.json({ error: "Search is temporarily unavailable." }, { status: 500 });
   }

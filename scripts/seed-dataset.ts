@@ -95,6 +95,8 @@ async function seedRow(row: DatasetRow) {
     },
   });
 
+  // A reseed replaces this problem's content, so any cached answer is stale.
+  await prisma.answerCache.deleteMany({ where: { problemId: problem.id } });
   await prisma.problemPattern.deleteMany({ where: { problemId: problem.id } });
   for (const tag of asTags(row.tags)) {
     const pattern = await prisma.pattern.upsert({ where: { name: tag }, update: {}, create: { name: tag } });
@@ -102,22 +104,21 @@ async function seedRow(row: DatasetRow) {
   }
 
   await prisma.problemChunk.deleteMany({ where: { problemId: problem.id } });
+  // Do not synthesize `approach` or `complexity` prose. The upstream dataset
+  // does not ship those fields; placeholder chunks used to make retrieval and
+  // the tutor look grounded when they were not. Only index text we actually
+  // have, and let the tutor reason from the reference solution otherwise.
+  const approach = asText(row.approach ?? row.explanation).trim();
+  const complexity = asText(row.complexity).trim();
   const chunks = [
     { section: "statement" as const, content: chunkContent("Problem statement", statement) },
     {
       section: "approach" as const,
-      content: chunkContent(
-        "Approach",
-        row.approach ?? row.explanation ??
-          `Use the ${asTags(row.tags).join(", ") || "problem-solving"} pattern to transform the problem statement into a solution.`,
-      ),
+      content: approach ? chunkContent("Approach", approach) : "",
     },
     {
       section: "complexity" as const,
-      content: chunkContent(
-        "Complexity",
-        row.complexity ?? "Complexity depends on the constraints and the chosen implementation.",
-      ),
+      content: complexity ? chunkContent("Complexity", complexity) : "",
     },
     { section: "editorial" as const, content: chunkContent("Constraints", row.constraints) },
     { section: "code" as const, content: chunkContent("Reference solution", row.solution) },
@@ -128,7 +129,15 @@ async function seedRow(row: DatasetRow) {
   const testCases = normalizeTestCases(row.test_cases);
   if (testCases.length) {
     await prisma.testCase.createMany({
-      data: testCases.map((testCase, sortOrder) => ({ ...testCase, problemId: problem.id, sortOrder, isHidden: false })),
+      data: testCases.map((testCase, sortOrder) => ({
+        ...testCase,
+        problemId: problem.id,
+        sortOrder,
+        // Expose the first case as the worked sample and hide every other
+        // expected output from the browser. The runner already redacts hidden
+        // results, and the repair loop only sees that a hidden case failed.
+        isHidden: sortOrder > 0,
+      })),
     });
   }
   return true;
