@@ -1,0 +1,1216 @@
+{
+  "generatedAt": "2026-11-14T19:58:17.910Z",
+  "answerModel": "gemini-3.8-flash",
+  "judgeModel": "gemini-2.5-flash",
+  "complete": true,
+  "summary": {
+    "requested": 12,
+    "answered": 12,
+    "judged": 12,
+    "generationFailures": 0,
+    "judgeFailures": 0,
+    "meanFaithfulness": 4.916666666666667,
+    "hallucinationRate": 0.08333333333333333,
+    "unsupportedClaimRate": 0.010526315789473684,
+    "claimCount": 190,
+    "citationRate": 1,
+    "p50AnswerMs": 12249.5,
+    "p95AnswerMs": 18888.45,
+    "tokensIn": 8687,
+    "tokensOut": 6587
+  },
+  "cases": [
+    {
+      "slug": "01-matrix",
+      "title": "Matrix",
+      "difficulty": "Medium",
+      "question": "What is the key idea behind the optimal approach, and why does it work?",
+      "sources": [
+        {
+          "chunkId": "cmw0osz0r0005acijang5kerb",
+          "section": "statement",
+          "content": "Problem statement\n\nGiven an m x n binary matrix mat, return the distance of the nearest 0 for each cell.\nThe distance between two cells sharing a common edge is 1.\n\nExample 1:\n\nInput: mat = [[0,0,0],[0,1,0],[0,0,0]]\nOutput: [[0,0,0],[0,1,0],[0,0,0]]\n\nExample 2:\n\nInput: mat = [[0,0,0],[0,1,0],[1,1,1]]\nOutput: [[0,0,0],[0,1,0],[1,2,1]]"
+        },
+        {
+          "chunkId": "cmw0osz0r0009acijzgpxb5bg",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def updateMatrix(self, mat: List[List[int]]) -> List[List[int]]:\n        from collections import deque\n\n        m, n = len(mat), len(mat[0])\n        q = deque()\n        for i in range(m):\n            row = mat[i]\n            for j in range(n):\n                if row[j] == 0:\n                    q.append((i, j))\n                else:\n                    row[j] = -1\n        d = 0\n        while q:\n            for _ in range(len(q)):\n                i, j = q.popleft()\n                if mat[i][j] == -1:\n                    mat[i][j] = d\n                nd = d + 1\n                if i and mat[i - 1][j] == -1:\n                    mat[i - 1][j] = nd\n                    q.append((i - 1, j))\n                if i + 1 < m and mat[i + 1][j] == -1:\n                    mat[i + 1][j] = nd\n                    q.append((i + 1, j))\n                if j and mat[i][j - 1] == -1:\n                    mat[i][j - 1] = nd\n                    q.append((i, j - 1))\n                if j + 1 < n and mat[i][j + 1] == -1:\n                    mat[i][j + 1] = nd\n                    q.append((i, j + 1))\n            d += 1\n        return mat"
+        },
+        {
+          "chunkId": "cmw0osz0r0008acij0lo8xm67",
+          "section": "editorial",
+          "content": "Constraints\n\nm == mat.length\nn == mat[i].length\n1 <= m, n <= 104\n1 <= m * n <= 104\nmat[i][j] is either 0 or 1.\nThere is at least one 0 in mat.\n\nNote: This question is the same as 1765: https://leetcode.com/problems/map-of-highest-peak/"
+        }
+      ],
+      "answer": "The key idea behind the optimal approach is **multi-source Breadth-First Search (BFS)** [Source 2].\n\n### Key Idea\nInstead of searching from each `1` to find the nearest `0`, the approach works in reverse by starting from all `0`s simultaneously [Source 2]:\n1. **Initialize the Queue:** Scan the matrix, enqueue the coordinates of every cell containing `0`, and mark all cells containing `1` as `-1` to indicate they are unvisited [Source 2].\n2. **Level-by-Level Expansion:** Process the queue layer by layer according to distance `d` (starting at `0`) [Source 2]. \n3. **Visit Neighbors:** For each cell, check its four adjacent neighbors (up, down, left, right). If a neighbor has a value of `-1` (unvisited), update its distance to `nd = d + 1` and append it to the queue [Source 2].\n\n---\n\n### Why It Works\n* **Shortest Path Property of BFS:** Because the distance between adjacent cells is uniformly `1` [Source 1], a BFS explores cells in increasing order of distance. \n* **Simultaneous Expansion:** By pushing all `0` cells into the queue at the start, the BFS waves expand outward at the same rate. The first time the search reaches an unvisited cell (`-1`), the current distance is guaranteed to be the shortest distance to any `0` in the grid [Source 1, Source 2].\n* **Efficiency via State Tracking:** Setting visited cells to their computed distance ensures each cell is visited and enqueued at most once [Source 2].\n\n---\n\n### Complexity Analysis (from [Source 2])\n* **Time Complexity:** $O(m \\times n)$, where $m$ and $n$ are the matrix dimensions [Source 3]. Each cell is added to and removed from the queue at most once, and constant-time work (up to 4 adjacent neighbor checks) is done per cell [Source 2].\n* **Space Complexity:** $O(m \\times n)$ for the BFS queue, which in the worst case can hold a number of cells proportional to the matrix size [Source 2].",
+      "answerMs": 12503,
+      "tokensIn": 885,
+      "tokensOut": 474,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The key idea behind the optimal approach is multi-source Breadth-First Search (BFS).",
+            "supported": true
+          },
+          {
+            "text": "Instead of searching from each '1' to find the nearest '0', the approach works in reverse by starting from all '0's simultaneously.",
+            "supported": true
+          },
+          {
+            "text": "The first step is to initialize the queue by scanning the matrix, enqueueing the coordinates of every cell containing '0'.",
+            "supported": true
+          },
+          {
+            "text": "During initialization, all cells containing '1' are marked as '-1' to indicate they are unvisited.",
+            "supported": true
+          },
+          {
+            "text": "The algorithm processes the queue layer by layer according to distance 'd', starting at '0'.",
+            "supported": true
+          },
+          {
+            "text": "For each cell, its four adjacent neighbors (up, down, left, right) are checked.",
+            "supported": true
+          },
+          {
+            "text": "If a neighbor has a value of '-1' (unvisited), its distance is updated to 'nd = d + 1' and it is appended to the queue.",
+            "supported": true
+          },
+          {
+            "text": "The shortest path property of BFS ensures that because the distance between adjacent cells is uniformly '1', BFS explores cells in increasing order of distance.",
+            "supported": true
+          },
+          {
+            "text": "By pushing all '0' cells into the queue at the start, the BFS waves expand outward at the same rate.",
+            "supported": true
+          },
+          {
+            "text": "The first time the search reaches an unvisited cell ('-1'), the current distance is guaranteed to be the shortest distance to any '0' in the grid.",
+            "supported": true
+          },
+          {
+            "text": "Setting visited cells to their computed distance ensures each cell is visited and enqueued at most once.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity is O(m × n), where m and n are the matrix dimensions.",
+            "supported": true
+          },
+          {
+            "text": "Each cell is added to and removed from the queue at most once.",
+            "supported": true
+          },
+          {
+            "text": "Constant-time work (up to 4 adjacent neighbor checks) is done per cell.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(m × n) for the BFS queue.",
+            "supported": true
+          },
+          {
+            "text": "In the worst case, the queue can hold a number of cells proportional to the matrix size.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, either through explicit statements in the prose or by direct demonstration in the reference code."
+      },
+      "judgeMs": 3696,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The key idea behind the optimal approach is multi-source Breadth-First Search (BFS).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Instead of searching from each '1' to find the nearest '0', the approach works in reverse by starting from all '0's simultaneously.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The first step is to initialize the queue by scanning the matrix, enqueueing the coordinates of every cell containing '0'.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"During initialization, all cells containing '1' are marked as '-1' to indicate they are unvisited.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm processes the queue layer by layer according to distance 'd', starting at '0'.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For each cell, its four adjacent neighbors (up, down, left, right) are checked.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If a neighbor has a value of '-1' (unvisited), its distance is updated to 'nd = d + 1' and it is appended to the queue.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The shortest path property of BFS ensures that because the distance between adjacent cells is uniformly '1', BFS explores cells in increasing order of distance.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"By pushing all '0' cells into the queue at the start, the BFS waves expand outward at the same rate.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The first time the search reaches an unvisited cell ('-1'), the current distance is guaranteed to be the shortest distance to any '0' in the grid.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Setting visited cells to their computed distance ensures each cell is visited and enqueued at most once.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity is O(m \\u00d7 n), where m and n are the matrix dimensions.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Each cell is added to and removed from the queue at most once.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Constant-time work (up to 4 adjacent neighbor checks) is done per cell.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(m \\u00d7 n) for the BFS queue.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"In the worst case, the queue can hold a number of cells proportional to the matrix size.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, either through explicit statements in the prose or by direct demonstration in the reference code.\"\n}"
+    },
+    {
+      "slug": "check-if-all-as-appears-before-all-bs",
+      "title": "Check If All As Appears Before All Bs",
+      "difficulty": "Easy",
+      "question": "What are the time and space complexity, and why?",
+      "sources": [
+        {
+          "chunkId": "cmw0ot1eq04awacij8ymeocr6",
+          "section": "statement",
+          "content": "Problem statement\n\nGiven a string s consisting of only the characters 'a' and 'b', return true if every 'a' appears before every 'b' in the string. Otherwise, return false.\n\nExample 1:\n\nInput: s = \"aaabbb\"\nOutput: true\nExplanation:\nThe 'a's are at indices 0, 1, and 2, while the 'b's are at indices 3, 4, and 5.\nHence, every 'a' appears before every 'b' and we return true.\n\nExample 2:\n\nInput: s = \"abab\"\nOutput: false\nExplanation:\nThere is an 'a' at index 2 and a 'b' at index 1.\nHence, not every 'a' appears before every 'b' and we return false.\n\nExample 3:\n\nInput: s = \"bbb\"\nOutput: true\nExplanation:\nThere are no 'a's, hence, every 'a' appears before every 'b' and we return true."
+        },
+        {
+          "chunkId": "cmw0ot1eq04b0acijxcgax9os",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def checkString(self, s: str) -> bool:\n        return \"ba\" not in s"
+        },
+        {
+          "chunkId": "cmw0ot1eq04azacijbtjbere1",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= s.length <= 100\ns[i] is either 'a' or 'b'."
+        }
+      ],
+      "answer": "Based on the reference solution, here are the time and space complexities and the reasoning behind them:\n\n### **Time Complexity: $O(n)$**\n* **Why:** In the reference solution, the code checks `\"ba\" not in s` [Source 2]. Let $n$ be the length of the string `s` ($1 \\le n \\le 100$) [Source 3]. Searching for the two-character substring `\"ba\"` requires scanning through the characters of `s`, which takes linear time proportional to the length of the string, $O(n)$.\n\n---\n\n### **Space Complexity: $O(1)$**\n* **Why:** The operation `\"ba\" not in s` checks the string directly without creating extra data structures or allocating memory proportional to the size of the input [Source 2]. Therefore, the auxiliary space used is constant, $O(1)$.",
+      "answerMs": 6472,
+      "tokensIn": 547,
+      "tokensOut": 188,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The time complexity is O(n).",
+            "supported": true
+          },
+          {
+            "text": "The reference solution checks if the substring \"ba\" is not in `s`.",
+            "supported": true
+          },
+          {
+            "text": "Let n be the length of the string `s`.",
+            "supported": true
+          },
+          {
+            "text": "The length of the string `s` is between 1 and 100 (inclusive).",
+            "supported": true
+          },
+          {
+            "text": "Searching for a two-character substring like \"ba\" in a string of length n takes linear time, O(n).",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(1).",
+            "supported": true
+          },
+          {
+            "text": "The operation `\"ba\" not in s` does not create extra data structures or allocate memory proportional to the input size.",
+            "supported": true
+          },
+          {
+            "text": "The auxiliary space used is constant, O(1).",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including the reference solution code and editorial constraints."
+      },
+      "judgeMs": 2202,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The time complexity is O(n).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The reference solution checks if the substring \\\"ba\\\" is not in `s`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Let n be the length of the string `s`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The length of the string `s` is between 1 and 100 (inclusive).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Searching for a two-character substring like \\\"ba\\\" in a string of length n takes linear time, O(n).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(1).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The operation `\\\"ba\\\" not in s` does not create extra data structures or allocate memory proportional to the input size.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The auxiliary space used is constant, O(1).\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including the reference solution code and editorial constraints.\"\n}"
+    },
+    {
+      "slug": "count-special-integers",
+      "title": "Count Special Integers",
+      "difficulty": "Hard",
+      "question": "Walk me through the algorithm step by step.",
+      "sources": [
+        {
+          "chunkId": "cmw0ot3n8087qacijz7onsqzd",
+          "section": "statement",
+          "content": "Problem statement\n\nWe call a positive integer special if all of its digits are distinct.\nGiven a positive integer n, return the number of special integers that belong to the interval [1, n].\n\nExample 1:\n\nInput: n = 20\nOutput: 19\nExplanation: All the integers from 1 to 20, except 11, are special. Thus, there are 19 special integers.\n\nExample 2:\n\nInput: n = 5\nOutput: 5\nExplanation: All the integers from 1 to 5 are special.\n\nExample 3:\n\nInput: n = 135\nOutput: 110\nExplanation: There are 110 integers from 1 to 135 that are special.\nSome of the integers that are not special are: 22, 114, and 131."
+        },
+        {
+          "chunkId": "cmw0ot3n8087uacijqo7t9kfd",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def countSpecialNumbers(self, n: int) -> int:\n        s = str(n)\n        m = len(s)\n\n        def perm(a, b):\n            r = 1\n            for i in range(b):\n                r *= a - i\n            return r\n\n        ans = 0\n        for l in range(1, m):\n            ans += 9 * perm(9, l - 1)\n\n        used = [False] * 10\n        for i, ch in enumerate(s):\n            d = ord(ch) - 48\n            start = 1 if i == 0 else 0\n            for x in range(start, d):\n                if not used[x]:\n                    ans += perm(10 - (i + 1), m - i - 1)\n            if used[d]:\n                return ans\n            used[d] = True\n\n        return ans + 1"
+        },
+        {
+          "chunkId": "cmw0ot3n8087tacijis9i0dt3",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= n <= 2 * 109"
+        }
+      ],
+      "answer": "Here is a step-by-step walkthrough of the algorithm based on the reference solution [Source 2]:\n\n### 1. Precomputation and Helper Setup\n* Convert $n$ to its string form $s$, and let $m$ be its number of digits (`len(s)`) [Source 2].\n* Define a permutation helper function `perm(a, b)` that calculates the product $a \\times (a - 1) \\times \\dots \\times (a - b + 1)$, representing the number of ways to pick $b$ distinct digits from $a$ available digits [Source 2].\n\n---\n\n### 2. Count Valid Numbers with Fewer than $m$ Digits\nAny positive integer with fewer digits than $n$ is strictly less than $n$ [Source 1, Source 2].\n* For each length $l$ from $1$ to $m - 1$:\n  * The first digit cannot be `0`, leaving $9$ choices (digits $1$ through $9$) [Source 2].\n  * The remaining $l - 1$ digits are chosen without repetition from the $9$ remaining unused digits (including `0`), which yields `perm(9, l - 1)` ways [Source 2].\n  * Add $9 \\times \\text{perm}(9, l - 1)$ to `ans` [Source 2].\n\n---\n\n### 3. Count Valid Numbers with Exactly $m$ Digits\nTo find valid numbers with length $m$ that are less than or equal to $n$, the algorithm processes the digits of $s$ from left to right (index $i$ from $0$ to $m - 1$) and maintains a boolean array `used` of size 10 [Source 2]:\n\n1. **Try placing a smaller digit at position $i$**:\n   * Determine the current digit $d = \\text{ord}(ch) - 48$ [Source 2].\n   * Set the starting candidate digit `start`: $1$ if $i == 0$ (no leading zero) and $0$ otherwise [Source 2].\n   * Iterate over each candidate digit $x$ from `start` up to $d - 1$ [Source 2]:\n     * If $x$ has not been used yet (`not used[x]`):\n       * $i + 1$ digits are now fixed, leaving $10 - (i + 1)$ unused digits [Source 2].\n       * There are $m - i - 1$ positions left to fill.\n       * Add `perm(10 - (i + 1), m - i - 1)` to `ans` [Source 2].\n2. **Match the current digit $d$ to continue**:\n   * If digit $d$ has already been used (`used[d] == True`), we cannot form any more valid numbers with this prefix. Return `ans` immediately [Source 2].\n   * Otherwise, mark $d$ as used (`used[d] = True`) and continue to the next index $i + 1$ [Source 2].\n\n---\n\n### 4. Account for $n$ Itself\n* If the loop completes all $m$ digits without returning early, it means all digits of $n$ are distinct. Therefore, $n$ itself is a special integer, so return `ans + 1` [Source 1, Source 2].\n\n---\n\n### Complexity Analysis\n* **Time Complexity**: $O(m)$ operations, where $m$ is the number of digits in $n$ [Source 2]. Since $n \\le 2 \\times 10^9$ [Source 3], $m \\le 10$. The helper function `perm` and the digit iterations run at most 10 times, making the overall time $O(m)$ (effectively $O(1)$) [Source 2, Source 3].\n* **Space Complexity**: $O(m)$ to store the string representation of $n$, plus $O(1)$ auxiliary space for the fixed-size `used` array of length 10 [Source 2].",
+      "answerMs": 19164,
+      "tokensIn": 688,
+      "tokensOut": 907,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The algorithm converts the input integer $n$ to its string form $s$, and $m$ is set to the number of digits in $s$ (`len(s)`).",
+            "supported": true
+          },
+          {
+            "text": "A helper function `perm(a, b)` is defined to calculate permutations, specifically the product $a \\times (a - 1) \\times \\dots \\times (a - b + 1)$.",
+            "supported": true
+          },
+          {
+            "text": "This `perm` function represents the number of ways to pick $b$ distinct digits from $a$ available digits.",
+            "supported": true
+          },
+          {
+            "text": "The algorithm first counts valid numbers with fewer than $m$ digits.",
+            "supported": true
+          },
+          {
+            "text": "For each length $l$ from $1$ to $m - 1$, the algorithm calculates the number of special integers.",
+            "supported": true
+          },
+          {
+            "text": "For these lengths, the first digit cannot be `0`, providing $9$ choices (digits $1$ through $9$).",
+            "supported": true
+          },
+          {
+            "text": "The remaining $l - 1$ digits are chosen without repetition from the $9$ remaining unused digits (including `0`), which is `perm(9, l - 1)` ways.",
+            "supported": true
+          },
+          {
+            "text": "The product $9 \\times \\text{perm}(9, l - 1)$ is added to `ans` for each such length $l$.",
+            "supported": true
+          },
+          {
+            "text": "To count valid numbers with exactly $m$ digits, the algorithm processes the digits of $s$ from left to right (index $i$ from $0$ to $m - 1$).",
+            "supported": true
+          },
+          {
+            "text": "A boolean array `used` of size 10 is maintained to track used digits.",
+            "supported": true
+          },
+          {
+            "text": "The current digit $d$ is obtained by converting the character $ch$ at index $i$ from $s$ to an integer (`ord(ch) - 48`).",
+            "supported": true
+          },
+          {
+            "text": "The starting candidate digit `start` for iteration is $1$ if $i == 0$ (to prevent leading zeros) and $0$ otherwise.",
+            "supported": true
+          },
+          {
+            "text": "The algorithm iterates over each candidate digit $x$ from `start` up to $d - 1$.",
+            "supported": true
+          },
+          {
+            "text": "If $x$ has not been used yet (`not used[x]`), it means $i + 1$ digits are now fixed.",
+            "supported": true
+          },
+          {
+            "text": "There are $10 - (i + 1)$ unused digits remaining and $m - i - 1$ positions left to fill.",
+            "supported": true
+          },
+          {
+            "text": "The number of permutations `perm(10 - (i + 1), m - i - 1)` is added to `ans`.",
+            "supported": true
+          },
+          {
+            "text": "If the current digit $d$ has already been used (`used[d] == True`), the algorithm cannot form any more valid numbers with this prefix and returns `ans` immediately.",
+            "supported": true
+          },
+          {
+            "text": "Otherwise, digit $d$ is marked as used (`used[d] = True`), and the algorithm continues to the next index $i + 1$.",
+            "supported": true
+          },
+          {
+            "text": "If the loop completes all $m$ digits without returning early, it implies all digits of $n$ are distinct, meaning $n$ itself is a special integer.",
+            "supported": true
+          },
+          {
+            "text": "In this case, `ans + 1` is returned to include $n$ itself.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity is $O(m)$, where $m$ is the number of digits in $n$.",
+            "supported": true
+          },
+          {
+            "text": "Since $n \\le 2 \\times 10^9$, $m \\le 10$.",
+            "supported": true
+          },
+          {
+            "text": "The helper function `perm` and digit iterations run at most 10 times, making the overall time effectively $O(1)$.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is $O(m)$ for storing the string representation of $n$.",
+            "supported": true
+          },
+          {
+            "text": "Additionally, there is $O(1)$ auxiliary space for the fixed-size `used` array of length 10.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including the code and editorial, with accurate interpretations of the algorithm's steps and complexity."
+      },
+      "judgeMs": 5529,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The algorithm converts the input integer $n$ to its string form $s$, and $m$ is set to the number of digits in $s$ (`len(s)`).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"A helper function `perm(a, b)` is defined to calculate permutations, specifically the product $a \\\\times (a - 1) \\\\times \\\\dots \\\\times (a - b + 1)$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"This `perm` function represents the number of ways to pick $b$ distinct digits from $a$ available digits.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm first counts valid numbers with fewer than $m$ digits.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For each length $l$ from $1$ to $m - 1$, the algorithm calculates the number of special integers.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For these lengths, the first digit cannot be `0`, providing $9$ choices (digits $1$ through $9$).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The remaining $l - 1$ digits are chosen without repetition from the $9$ remaining unused digits (including `0`), which is `perm(9, l - 1)` ways.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The product $9 \\\\times \\\\text{perm}(9, l - 1)$ is added to `ans` for each such length $l$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"To count valid numbers with exactly $m$ digits, the algorithm processes the digits of $s$ from left to right (index $i$ from $0$ to $m - 1$).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"A boolean array `used` of size 10 is maintained to track used digits.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The current digit $d$ is obtained by converting the character $ch$ at index $i$ from $s$ to an integer (`ord(ch) - 48`).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The starting candidate digit `start` for iteration is $1$ if $i == 0$ (to prevent leading zeros) and $0$ otherwise.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm iterates over each candidate digit $x$ from `start` up to $d - 1$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If $x$ has not been used yet (`not used[x]`), it means $i + 1$ digits are now fixed.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"There are $10 - (i + 1)$ unused digits remaining and $m - i - 1$ positions left to fill.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The number of permutations `perm(10 - (i + 1), m - i - 1)` is added to `ans`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If the current digit $d$ has already been used (`used[d] == True`), the algorithm cannot form any more valid numbers with this prefix and returns `ans` immediately.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Otherwise, digit $d$ is marked as used (`used[d] = True`), and the algorithm continues to the next index $i + 1$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If the loop completes all $m$ digits without returning early, it implies all digits of $n$ are distinct, meaning $n$ itself is a special integer.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"In this case, `ans + 1` is returned to include $n$ itself.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity is $O(m)$, where $m$ is the number of digits in $n$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Since $n \\\\le 2 \\\\times 10^9$, $m \\\\le 10$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The helper function `perm` and digit iterations run at most 10 times, making the overall time effectively $O(1)$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is $O(m)$ for storing the string representation of $n$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Additionally, there is $O(1)$ auxiliary space for the fixed-size `used` array of length 10.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including the code and editorial, with accurate interpretations of the algorithm's steps and complexity.\"\n}"
+    },
+    {
+      "slug": "faulty-keyboard",
+      "title": "Faulty Keyboard",
+      "difficulty": "Easy",
+      "question": "What edge cases or pitfalls should I watch for?",
+      "sources": [
+        {
+          "chunkId": "cmw0ot6z70ci5acijyv4kl1wh",
+          "section": "statement",
+          "content": "Problem statement\n\nYour laptop keyboard is faulty, and whenever you type a character 'i' on it, it reverses the string that you have written. Typing other characters works as expected.\nYou are given a 0-indexed string s, and you type each character of s using your faulty keyboard.\nReturn the final string that will be present on your laptop screen.\n\nExample 1:\n\nInput: s = \"string\"\nOutput: \"rtsng\"\nExplanation:\nAfter typing first character, the text on the screen is \"s\".\nAfter the second character, the text is \"st\".\nAfter the third character, the text is \"str\".\nSince the fourth character is an 'i', the text gets reversed and becomes \"rts\".\nAfter the fifth character, the text is \"rtsn\".\nAfter the sixth character, the text is \"rtsng\".\nTherefore, we return \"rtsng\".\n\nExample 2:\n\nInput: s = \"poiinter\"\nOutput: \"ponter\"\nExplanation:\nAfter the first character, the text on the screen is \"p\".\nAfter the second character, the text is \"po\".\nSince the third character you type is an 'i', the text gets reversed and becomes \"op\".\nSince the fourth character you type is an 'i', the text gets reversed and becomes \"po\".\nAfter the fifth character, the text is \"pon\".\nAfter the sixth character, the text is \"pont\".\nAfter the seventh character, the text is \"ponte\".\nAfter the eighth character, the text is \"ponter\".\nTherefore, we return \"ponter\"."
+        },
+        {
+          "chunkId": "cmw0ot6z70ci9acijfulvgvfg",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def finalString(self, s: str) -> str:\n        ans = []\n        rev = False\n        for ch in s:\n            if ch == \"i\":\n                rev = not rev\n            elif rev:\n                ans.insert(0, ch)\n            else:\n                ans.append(ch)\n        if rev:\n            ans.reverse()\n        return \"\".join(ans)"
+        },
+        {
+          "chunkId": "cmw0ot6z70ci8acijxj5utey4",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= s.length <= 100\ns consists of lowercase English letters.\ns[0] != 'i'"
+        }
+      ],
+      "answer": "Based on the provided sources, here are the key edge cases and pitfalls to watch for:\n\n### 1. Consecutive `'i'` Characters\n* **Pitfall:** Encountering multiple `'i'` characters in a row.\n* **Details:** As demonstrated in Example 2 with `\"poiinter\"`, each `'i'` reverses the current text [Source 1]. Two consecutive `'i'` characters reverse the text twice, returning it to its previous order [Source 1]. \n* In the reference solution, this is handled by simply toggling a boolean flag (`rev = not rev`) [Source 2].\n\n### 2. Including `'i'` in the Output\n* **Pitfall:** Accidentally appending `'i'` to your output text.\n* **Details:** When `'i'` is typed, it only triggers a reversal of the text typed so far; the character `'i'` itself does not appear on the screen [Source 1, Source 2].\n\n### 3. Ending in a Reversed State\n* **Pitfall:** Forgetting to handle the final orientation of the string if typing finishes while in a reversed state.\n* **Details:** If you track direction using a flag or alternating insertions, an odd net number of reversals will leave the accumulated characters inverted. The reference solution accounts for this by checking `if rev:` after the loop and calling `ans.reverse()` before returning [Source 2].\n\n### 4. Strings with No `'i'`\n* **Details:** The constraints specify $1 \\le s.\\text{length} \\le 100$ [Source 3]. If a string contains no `'i'`, no reversals should occur, and the original characters should be returned unchanged [Source 1, Source 2].\n\n### 5. First Character is Never `'i'`\n* **Details:** The constraints explicitly state $s[0] \\neq \\text{'i'}$ [Source 3], so you do not need to handle a reversal on an initially empty string at index 0.",
+      "answerMs": 10550,
+      "tokensIn": 736,
+      "tokensOut": 421,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "Encountering multiple 'i' characters in a row is a pitfall.",
+            "supported": true
+          },
+          {
+            "text": "As demonstrated in Example 2 with \"poiinter\", each 'i' reverses the current text.",
+            "supported": true
+          },
+          {
+            "text": "Two consecutive 'i' characters reverse the text twice, returning it to its previous order.",
+            "supported": true
+          },
+          {
+            "text": "In the reference solution, this is handled by simply toggling a boolean flag (`rev = not rev`).",
+            "supported": true
+          },
+          {
+            "text": "Accidentally appending 'i' to your output text is a pitfall.",
+            "supported": true
+          },
+          {
+            "text": "When 'i' is typed, it only triggers a reversal of the text typed so far; the character 'i' itself does not appear on the screen.",
+            "supported": true
+          },
+          {
+            "text": "Forgetting to handle the final orientation of the string if typing finishes while in a reversed state is a pitfall.",
+            "supported": true
+          },
+          {
+            "text": "If you track direction using a flag or alternating insertions, an odd net number of reversals will leave the accumulated characters inverted.",
+            "supported": true
+          },
+          {
+            "text": "The reference solution accounts for this by checking `if rev:` after the loop and calling `ans.reverse()` before returning.",
+            "supported": true
+          },
+          {
+            "text": "The constraints specify $1 \\le s.\\text{length} \\le 100$.",
+            "supported": true
+          },
+          {
+            "text": "If a string contains no 'i', no reversals should occur, and the original characters should be returned unchanged.",
+            "supported": true
+          },
+          {
+            "text": "The constraints explicitly state $s[0] \\neq \\text{'i'}$.",
+            "supported": true
+          },
+          {
+            "text": "You do not need to handle a reversal on an initially empty string at index 0.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including examples, problem statements, constraints, and the reference solution code."
+      },
+      "judgeMs": 3079,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"Encountering multiple 'i' characters in a row is a pitfall.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"As demonstrated in Example 2 with \\\"poiinter\\\", each 'i' reverses the current text.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Two consecutive 'i' characters reverse the text twice, returning it to its previous order.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"In the reference solution, this is handled by simply toggling a boolean flag (`rev = not rev`).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Accidentally appending 'i' to your output text is a pitfall.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"When 'i' is typed, it only triggers a reversal of the text typed so far; the character 'i' itself does not appear on the screen.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Forgetting to handle the final orientation of the string if typing finishes while in a reversed state is a pitfall.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If you track direction using a flag or alternating insertions, an odd net number of reversals will leave the accumulated characters inverted.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The reference solution accounts for this by checking `if rev:` after the loop and calling `ans.reverse()` before returning.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The constraints specify $1 \\\\le s.\\\\text{length} \\\\le 100$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If a string contains no 'i', no reversals should occur, and the original characters should be returned unchanged.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The constraints explicitly state $s[0] \\\\neq \\\\text{'i'}$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"You do not need to handle a reversal on an initially empty string at index 0.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including examples, problem statements, constraints, and the reference solution code.\"\n}"
+    },
+    {
+      "slug": "game-of-life",
+      "title": "Game Of Life",
+      "difficulty": "Medium",
+      "question": "What is the key idea behind the optimal approach, and why does it work?",
+      "sources": [
+        {
+          "chunkId": "cmw0ot9xk0gnfacijgna3of4m",
+          "section": "statement",
+          "content": "Problem statement\n\nAccording to Wikipedia's article: \"The Game of Life, also known simply as Life, is a cellular automaton devised by the British mathematician John Horton Conway in 1970.\"\nThe board is made up of an m x n grid of cells, where each cell has an initial state: live (represented by a 1) or dead (represented by a 0). Each cell interacts with its eight neighbors (horizontal, vertical, diagonal) using the following four rules (taken from the above Wikipedia article):\n\nAny live cell with fewer than two live neighbors dies as if caused by under-population.\nAny live cell with two or three live neighbors lives on to the next generation.\nAny live cell with more than three live neighbors dies, as if by over-population.\nAny dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.\n\nThe next state of the board is determined by applying the above rules simultaneously to every cell in the current state of the m x n grid board. In this process, births and deaths occur simultaneously.\nGiven the current state of the board, update the board to reflect its next state.\nNote that you do not need to return anything.\n\nExample 1:\n\nInput: board = [[0,1,0],[0,0,1],[1,1,1],[0,0,0]]\nOutput: [[0,0,0],[1,0,1],[0,1,1],[0,1,0]]\n\nExample 2:\n\nInput: board = [[1,1],[1,0]]\nOutput: [[1,1],[1,1]]\n\nFollow up:\n\nCould you solve it in-place? Remember that the board needs to be updated simultaneously: You cannot update some cells first and then use their updated values to update other cells.\nIn this question, we represent the board using a 2D array. In principle, the board is infinite, which would cause problems when the active area encroaches upon the border of the array (i.e., live cells reach the border). How would you address these problems?"
+        },
+        {
+          "chunkId": "cmw0ot9xk0gnjacijcvh3s5pc",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def gameOfLife(self, board: List[List[int]]) -> None:\n        m = len(board)\n        n = len(board[0]) if m else 0\n        for i in range(m):\n            for j in range(n):\n                cnt = 0\n                for x in (i - 1, i, i + 1):\n                    if 0 <= x < m:\n                        row = board[x]\n                        for y in (j - 1, j, j + 1):\n                            if (x != i or y != j) and 0 <= y < n and (row[y] & 1):\n                                cnt += 1\n                if board[i][j] == 1 and cnt in (2, 3) or board[i][j] == 0 and cnt == 3:\n                    board[i][j] |= 2\n        for i in range(m):\n            for j in range(n):\n                board[i][j] >>= 1"
+        },
+        {
+          "chunkId": "cmw0ot9xk0gniacijasamxqic",
+          "section": "editorial",
+          "content": "Constraints\n\nm == board.length\nn == board[i].length\n1 <= m, n <= 25\nboard[i][j] is 0 or 1."
+        }
+      ],
+      "answer": "### Key Idea Behind the Optimal Approach\n\nThe core challenge is that all cells must be updated **simultaneously**, meaning you cannot directly overwrite a cell’s value without corrupting the neighbor calculations for subsequent cells [Source 1]. \n\nTo solve this in-place without allocating a second matrix, the optimal approach uses **bit manipulation** to store both the cell's **current state** and **next state** within the same integer [Source 2]:\n\n1. **Bit 0 (least significant bit):** Stores the **current state** (`0` for dead, `1` for live) [Source 1, Source 2].\n2. **Bit 1 (second bit):** Stores the **next state** (`0` for dead, `1` for live) [Source 2].\n\n---\n\n### Why It Works (Step-by-Step)\n\n1. **Reading Current States Without Interference:**\n   When counting the live neighbors of cell `(i, j)`, the algorithm inspects its adjacent cells using `row[y] & 1` [Source 2]. Because this bitwise AND extracts only the lowest bit (Bit 0), neighbor checks always see each neighbor's original state, even if that neighbor has already computed its next state [Source 2].\n\n2. **Encoding the Next State:**\n   According to the rules, a cell survives or reproduces if [Source 1, Source 2]:\n   - A live cell has 2 or 3 live neighbors.\n   - A dead cell has exactly 3 live neighbors.\n   \n   If either condition is met, the next state is live, so Bit 1 is set using `board[i][j] |= 2` [Source 2]. (If the cell will be dead, Bit 1 remains `0`).\n\n3. **Finalizing the Transition:**\n   Once all cells have evaluated their neighbors and encoded their next state into Bit 1, a second pass shifts every cell to the right by 1 bit using `board[i][j] >>= 1` [Source 2]. This discards the old state and places the next state into Bit 0, leaving the board updated to its new generation [Source 2].\n\n---\n\n### Complexity\n\n- **Time Complexity:** $O(m \\times n)$. The algorithm iterates through each cell in the $m \\times n$ matrix, inspecting at most 8 neighbors per cell in the first pass and performing a constant-time shift in the second pass [Source 2, Source 3].\n- **Space Complexity:** $O(1)$ auxiliary space. The board is modified in-place using the available bits in each cell without allocating additional 2D data structures [Source 2].",
+      "answerMs": 11996,
+      "tokensIn": 990,
+      "tokensOut": 579,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The core challenge is that all cells must be updated simultaneously, meaning you cannot directly overwrite a cell’s value without corrupting the neighbor calculations for subsequent cells.",
+            "supported": true
+          },
+          {
+            "text": "To solve this in-place without allocating a second matrix, the optimal approach uses bit manipulation to store both the cell's current state and next state within the same integer.",
+            "supported": true
+          },
+          {
+            "text": "Bit 0 (least significant bit) stores the current state (0 for dead, 1 for live).",
+            "supported": true
+          },
+          {
+            "text": "Bit 1 (second bit) stores the next state (0 for dead, 1 for live).",
+            "supported": true
+          },
+          {
+            "text": "When counting the live neighbors of cell (i, j), the algorithm inspects its adjacent cells using `row[y] & 1`.",
+            "supported": true
+          },
+          {
+            "text": "Because this bitwise AND extracts only the lowest bit (Bit 0), neighbor checks always see each neighbor's original state, even if that neighbor has already computed its next state.",
+            "supported": true
+          },
+          {
+            "text": "According to the rules, a cell survives or reproduces if a live cell has 2 or 3 live neighbors or a dead cell has exactly 3 live neighbors.",
+            "supported": true
+          },
+          {
+            "text": "If either condition is met, the next state is live, so Bit 1 is set using `board[i][j] |= 2`.",
+            "supported": true
+          },
+          {
+            "text": "If the cell will be dead, Bit 1 remains 0.",
+            "supported": true
+          },
+          {
+            "text": "Once all cells have evaluated their neighbors and encoded their next state into Bit 1, a second pass shifts every cell to the right by 1 bit using `board[i][j] >>= 1`.",
+            "supported": true
+          },
+          {
+            "text": "This discards the old state and places the next state into Bit 0, leaving the board updated to its new generation.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity is O(m × n).",
+            "supported": true
+          },
+          {
+            "text": "The algorithm iterates through each cell in the m × n matrix, inspecting at most 8 neighbors per cell in the first pass and performing a constant-time shift in the second pass.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(1) auxiliary space.",
+            "supported": true
+          },
+          {
+            "text": "The board is modified in-place using the available bits in each cell without allocating additional 2D data structures.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including the problem statement, reference code, and editorial."
+      },
+      "judgeMs": 3655,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The core challenge is that all cells must be updated simultaneously, meaning you cannot directly overwrite a cell’s value without corrupting the neighbor calculations for subsequent cells.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"To solve this in-place without allocating a second matrix, the optimal approach uses bit manipulation to store both the cell's current state and next state within the same integer.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Bit 0 (least significant bit) stores the current state (0 for dead, 1 for live).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Bit 1 (second bit) stores the next state (0 for dead, 1 for live).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"When counting the live neighbors of cell (i, j), the algorithm inspects its adjacent cells using `row[y] & 1`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Because this bitwise AND extracts only the lowest bit (Bit 0), neighbor checks always see each neighbor's original state, even if that neighbor has already computed its next state.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"According to the rules, a cell survives or reproduces if a live cell has 2 or 3 live neighbors or a dead cell has exactly 3 live neighbors.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If either condition is met, the next state is live, so Bit 1 is set using `board[i][j] |= 2`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If the cell will be dead, Bit 1 remains 0.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Once all cells have evaluated their neighbors and encoded their next state into Bit 1, a second pass shifts every cell to the right by 1 bit using `board[i][j] >>= 1`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"This discards the old state and places the next state into Bit 0, leaving the board updated to its new generation.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity is O(m × n).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm iterates through each cell in the m × n matrix, inspecting at most 8 neighbors per cell in the first pass and performing a constant-time shift in the second pass.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(1) auxiliary space.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The board is modified in-place using the available bits in each cell without allocating additional 2D data structures.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including the problem statement, reference code, and editorial.\"\n}"
+    },
+    {
+      "slug": "longest-happy-prefix",
+      "title": "Longest Happy Prefix",
+      "difficulty": "Hard",
+      "question": "What are the time and space complexity, and why?",
+      "sources": [
+        {
+          "chunkId": "cmw0otcx80ku5acijezeqjeh2",
+          "section": "statement",
+          "content": "Problem statement\n\nA string is called a happy prefix if is a non-empty prefix which is also a suffix (excluding itself).\nGiven a string s, return the longest happy prefix of s. Return an empty string \"\" if no such prefix exists.\n\nExample 1:\n\nInput: s = \"level\"\nOutput: \"l\"\nExplanation: s contains 4 prefix excluding itself (\"l\", \"le\", \"lev\", \"leve\"), and suffix (\"l\", \"el\", \"vel\", \"evel\"). The largest prefix which is also suffix is given by \"l\".\n\nExample 2:\n\nInput: s = \"ababab\"\nOutput: \"abab\"\nExplanation: \"abab\" is the largest prefix which is also suffix. They can overlap in the original string."
+        },
+        {
+          "chunkId": "cmw0otcx80ku9acijs0u0vqbo",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def longestPrefix(self, s: str) -> str:\n        n = len(s)\n        lps = [0] * n\n        j = 0\n        for i in range(1, n):\n            while j and s[i] != s[j]:\n                j = lps[j - 1]\n            if s[i] == s[j]:\n                j += 1\n                lps[i] = j\n        return s[: lps[-1]]"
+        },
+        {
+          "chunkId": "cmw0otcx80ku8acij02s8u7nq",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= s.length <= 105\ns contains only lowercase English letters."
+        }
+      ],
+      "answer": "Based on the reference solution in [Source 2], here is the breakdown of the time and space complexity:\n\n---\n\n### **Time Complexity: $O(n)$**\n*(where $n$ is the length of string `s`)*\n\n**Why?**\n1. **Outer loop:** The `for i in range(1, n)` loop runs $n - 1$ times [Source 2].\n2. **Inner `while` loop amortized cost:** \n   - The pointer `j` only increases when `s[i] == s[j]` via `j += 1` [Source 2]. Because this occurs at most once per iteration of the `for` loop, `j` can increase at most $n - 1$ times in total.\n   - Inside the `while j and s[i] != s[j]:` loop, `j` is decreased using `j = lps[j - 1]` [Source 2]. Because `j` is never negative and can only be reduced as many times as it was previously increased, the `while` loop condition can execute at most $n - 1$ times across the entire runtime of the algorithm.\n3. **String slicing:** Constructing and returning the slice `s[: lps[-1]]` takes up to $O(n)$ time [Source 2].\n\nBecause the total work done across all iterations is linear, the overall time complexity is **$O(n)$**.\n\n---\n\n### **Space Complexity: $O(n)$**\n\n**Why?**\n1. **Array storage:** The algorithm allocates an array `lps = [0] * n` of size $n$ to store the length of the longest matching prefix-suffix values for each prefix [Source 2].\n2. **Output string:** The final return value `s[: lps[-1]]` creates a new substring of length up to $n - 1$ [Source 1, Source 2].\n\nThus, the overall auxiliary space complexity is **$O(n)$**.",
+      "answerMs": 11101,
+      "tokensIn": 572,
+      "tokensOut": 441,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The time complexity is O(n), where n is the length of string `s`.",
+            "supported": true
+          },
+          {
+            "text": "The `for i in range(1, n)` loop runs n - 1 times.",
+            "supported": true
+          },
+          {
+            "text": "The pointer `j` only increases when `s[i] == s[j]` via `j += 1`.",
+            "supported": true
+          },
+          {
+            "text": "This occurs at most once per iteration of the `for` loop, so `j` can increase at most n - 1 times in total.",
+            "supported": true
+          },
+          {
+            "text": "Inside the `while j and s[i] != s[j]:` loop, `j` is decreased using `j = lps[j - 1]`.",
+            "supported": true
+          },
+          {
+            "text": "Because `j` is never negative and can only be reduced as many times as it was previously increased, the `while` loop condition can execute at most n - 1 times across the entire runtime of the algorithm.",
+            "supported": true
+          },
+          {
+            "text": "Constructing and returning the slice `s[: lps[-1]]` takes up to O(n) time.",
+            "supported": true
+          },
+          {
+            "text": "The overall time complexity is O(n) because the total work done across all iterations is linear.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(n).",
+            "supported": true
+          },
+          {
+            "text": "The algorithm allocates an array `lps = [0] * n` of size n to store the length of the longest matching prefix-suffix values for each prefix.",
+            "supported": true
+          },
+          {
+            "text": "The final return value `s[: lps[-1]]` creates a new substring of length up to n - 1.",
+            "supported": true
+          },
+          {
+            "text": "The overall auxiliary space complexity is O(n).",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, either through explicit statements or by direct observation of the reference code's mechanics."
+      },
+      "judgeMs": 2969,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The time complexity is O(n), where n is the length of string `s`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `for i in range(1, n)` loop runs n - 1 times.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The pointer `j` only increases when `s[i] == s[j]` via `j += 1`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"This occurs at most once per iteration of the `for` loop, so `j` can increase at most n - 1 times in total.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Inside the `while j and s[i] != s[j]:` loop, `j` is decreased using `j = lps[j - 1]`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Because `j` is never negative and can only be reduced as many times as it was previously increased, the `while` loop condition can execute at most n - 1 times across the entire runtime of the algorithm.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Constructing and returning the slice `s[: lps[-1]]` takes up to O(n) time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The overall time complexity is O(n) because the total work done across all iterations is linear.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(n).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm allocates an array `lps = [0] * n` of size n to store the length of the longest matching prefix-suffix values for each prefix.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The final return value `s[: lps[-1]]` creates a new substring of length up to n - 1.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The overall auxiliary space complexity is O(n).\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, either through explicit statements or by direct observation of the reference code's mechanics.\"\n}"
+    },
+    {
+      "slug": "maximum-number-of-ones",
+      "title": "Maximum Number Of Ones",
+      "difficulty": "Hard",
+      "question": "Walk me through the algorithm step by step.",
+      "sources": [
+        {
+          "chunkId": "cmw0otg4r0p7uacij5upurucg",
+          "section": "statement",
+          "content": "Problem statement\n\nConsider a matrix M with dimensions width * height, such that every cell has value 0or 1, and any squaresub-matrix of M of size sideLength * sideLengthhas at most maxOnesones.\nReturn the maximum possible number of ones that the matrix M can have.\n\nExample 1:\n\nInput: width = 3, height = 3, sideLength = 2, maxOnes = 1\nOutput: 4\nExplanation:\nIn a 3*3 matrix, no 2*2 sub-matrix can have more than 1 one.\nThe best solution that has 4 ones is:\n[1,0,1]\n[0,0,0]\n[1,0,1]\n\nExample 2:\n\nInput: width = 3, height = 3, sideLength = 2, maxOnes = 2\nOutput: 6\nExplanation:\n[1,0,1]\n[1,0,1]\n[1,0,1]"
+        },
+        {
+          "chunkId": "cmw0otg4r0p7yacijrgj863py",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def maximumNumberOfOnes(\n        self, width: int, height: int, sideLength: int, maxOnes: int\n    ) -> int:\n        counts = []\n        for i in range(sideLength):\n            a = (width + sideLength - 1 - i) // sideLength\n            for j in range(sideLength):\n                b = (height + sideLength - 1 - j) // sideLength\n                counts.append(a * b)\n        counts.sort(reverse=True)\n        return sum(counts[:maxOnes])"
+        },
+        {
+          "chunkId": "cmw0otg4r0p7xacijwh8dp8jx",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= width, height <= 100\n1 <= sideLength <= width, height\n0 <= maxOnes <= sideLength * sideLength"
+        }
+      ],
+      "answer": "Here is a step-by-step walkthrough of the algorithm based on the reference solution [Source 2].\n\n---\n\n### Step 1: Count the Occurrences of Each Relative Position\nAny cell $(r, c)$ in the matrix can be mapped to its relative position $(i, j)$ inside a `sideLength * sideLength` block, where $i = r \\pmod{\\text{sideLength}}$ and $j = c \\pmod{\\text{sideLength}}$. \n\nTo maximize the ones, setting a position $(i, j)$ to `1` adds 1 to every cell in the grid sharing that same relative coordinate:\n- For each $i \\in [0, \\text{sideLength} - 1]$, the number of times this column-offset appears across the full width is calculated as:\n  $$a = (\\text{width} + \\text{sideLength} - 1 - i) // \\text{sideLength}$$\n- For each $j \\in [0, \\text{sideLength} - 1]$, the number of times this row-offset appears across the full height is calculated as:\n  $$b = (\\text{height} + \\text{sideLength} - 1 - j) // \\text{sideLength}$$\n- The total contribution of choosing offset $(i, j)$ is $a \\times b$. This value is appended to a list `counts` [Source 2].\n\n---\n\n### Step 2: Sort the Counts in Descending Order\nSince any `sideLength * sideLength` sub-matrix can contain at most `maxOnes` ones [Source 1], we can pick at most `maxOnes` distinct relative positions $(i, j)$ to be `1`.\n\nTo maximize the total number of ones in the matrix, we greedily pick the positions that appear most frequently by sorting `counts` in descending order [Source 2]:\n```python\ncounts.sort(reverse=True)\n```\n\n---\n\n### Step 3: Sum the Top `maxOnes` Counts\nTake the sum of the first `maxOnes` elements from the sorted list and return it [Source 2]:\n```python\nreturn sum(counts[:maxOnes])\n```\n\n---\n\n### Complexity Analysis\n\n- **Time Complexity:** \n  - Generating `counts` takes $O(\\text{sideLength}^2)$ iterations [Source 2].\n  - The `counts` list contains $N = \\text{sideLength}^2$ elements. Sorting it takes $O(N \\log N) = O(\\text{sideLength}^2 \\log(\\text{sideLength}))$ time [Source 2].\n  - Slicing and summing up to `maxOnes` elements takes $O(\\text{maxOnes}) = O(\\text{sideLength}^2)$ time [Source 2, Source 3].\n  - **Total Time Complexity:** $O(\\text{sideLength}^2 \\log(\\text{sideLength}))$.\n\n- **Space Complexity:**\n  - The `counts` list stores $\\text{sideLength}^2$ values [Source 2].\n  - **Total Space Complexity:** $O(\\text{sideLength}^2)$.",
+      "answerMs": 13395,
+      "tokensIn": 658,
+      "tokensOut": 687,
+      "judge": {
+        "faithfulness": 4,
+        "hallucinated": true,
+        "claims": [
+          {
+            "text": "The algorithm proceeds by first counting the occurrences of each relative position.",
+            "supported": true
+          },
+          {
+            "text": "Any cell (r, c) in the matrix can be mapped to its relative position (i, j) inside a `sideLength * sideLength` block, where i = r % sideLength and j = c % sideLength.",
+            "supported": false
+          },
+          {
+            "text": "To maximize the ones, setting a position (i, j) to `1` adds 1 to every cell in the grid sharing that same relative coordinate.",
+            "supported": false
+          },
+          {
+            "text": "For each i in the range [0, sideLength - 1], the number of times this column-offset appears across the full width is calculated as: a = (width + sideLength - 1 - i) // sideLength.",
+            "supported": true
+          },
+          {
+            "text": "For each j in the range [0, sideLength - 1], the number of times this row-offset appears across the full height is calculated as: b = (height + sideLength - 1 - j) // sideLength.",
+            "supported": true
+          },
+          {
+            "text": "The total contribution of choosing offset (i, j) is a * b.",
+            "supported": true
+          },
+          {
+            "text": "This value is appended to a list `counts`.",
+            "supported": true
+          },
+          {
+            "text": "The next step is to sort the counts in descending order.",
+            "supported": true
+          },
+          {
+            "text": "Since any `sideLength * sideLength` sub-matrix can contain at most `maxOnes` ones, we can pick at most `maxOnes` distinct relative positions (i, j) to be `1`.",
+            "supported": true
+          },
+          {
+            "text": "To maximize the total number of ones in the matrix, the algorithm greedily picks the positions that appear most frequently by sorting `counts` in descending order.",
+            "supported": true
+          },
+          {
+            "text": "The code `counts.sort(reverse=True)` performs this sorting.",
+            "supported": true
+          },
+          {
+            "text": "Finally, the algorithm sums the top `maxOnes` counts.",
+            "supported": true
+          },
+          {
+            "text": "The code `return sum(counts[:maxOnes])` performs this summation and returns the result.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity for generating `counts` is O(sideLength^2) iterations.",
+            "supported": true
+          },
+          {
+            "text": "The `counts` list contains N = sideLength^2 elements.",
+            "supported": true
+          },
+          {
+            "text": "Sorting the `counts` list takes O(N log N) = O(sideLength^2 log(sideLength)) time.",
+            "supported": true
+          },
+          {
+            "text": "Slicing and summing up to `maxOnes` elements takes O(maxOnes) time.",
+            "supported": true
+          },
+          {
+            "text": "Given the constraint 0 <= maxOnes <= sideLength * sideLength, this is O(sideLength^2) time.",
+            "supported": true
+          },
+          {
+            "text": "The total time complexity is O(sideLength^2 log(sideLength)).",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is determined by the `counts` list, which stores sideLength^2 values.",
+            "supported": true
+          },
+          {
+            "text": "The total space complexity is O(sideLength^2).",
+            "supported": true
+          }
+        ],
+        "notes": "The explanation of relative positions and their contribution to the total number of ones is not explicitly stated or demonstrated in the provided sources."
+      },
+      "judgeMs": 4537,
+      "judgeRaw": "{\n  \"faithfulness\": 4,\n  \"hallucinated\": true,\n  \"claims\": [\n    {\n      \"text\": \"The algorithm proceeds by first counting the occurrences of each relative position.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Any cell (r, c) in the matrix can be mapped to its relative position (i, j) inside a `sideLength * sideLength` block, where i = r % sideLength and j = c % sideLength.\",\n      \"supported\": false\n    },\n    {\n      \"text\": \"To maximize the ones, setting a position (i, j) to `1` adds 1 to every cell in the grid sharing that same relative coordinate.\",\n      \"supported\": false\n    },\n    {\n      \"text\": \"For each i in the range [0, sideLength - 1], the number of times this column-offset appears across the full width is calculated as: a = (width + sideLength - 1 - i) // sideLength.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For each j in the range [0, sideLength - 1], the number of times this row-offset appears across the full height is calculated as: b = (height + sideLength - 1 - j) // sideLength.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The total contribution of choosing offset (i, j) is a * b.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"This value is appended to a list `counts`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The next step is to sort the counts in descending order.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Since any `sideLength * sideLength` sub-matrix can contain at most `maxOnes` ones, we can pick at most `maxOnes` distinct relative positions (i, j) to be `1`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"To maximize the total number of ones in the matrix, the algorithm greedily picks the positions that appear most frequently by sorting `counts` in descending order.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The code `counts.sort(reverse=True)` performs this sorting.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Finally, the algorithm sums the top `maxOnes` counts.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The code `return sum(counts[:maxOnes])` performs this summation and returns the result.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity for generating `counts` is O(sideLength^2) iterations.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `counts` list contains N = sideLength^2 elements.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Sorting the `counts` list takes O(N log N) = O(sideLength^2 log(sideLength)) time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Slicing and summing up to `maxOnes` elements takes O(maxOnes) time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Given the constraint 0 <= maxOnes <= sideLength * sideLength, this is O(sideLength^2) time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The total time complexity is O(sideLength^2 log(sideLength)).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is determined by the `counts` list, which stores sideLength^2 values.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The total space complexity is O(sideLength^2).\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"The explanation of relative positions and their contribution to the total number of ones is not explicitly stated or demonstrated in the provided sources.\"\n}"
+    },
+    {
+      "slug": "minimum-cost-to-make-array-equal",
+      "title": "Minimum Cost To Make Array Equal",
+      "difficulty": "Hard",
+      "question": "What edge cases or pitfalls should I watch for?",
+      "sources": [
+        {
+          "chunkId": "cmw0otj2t0t9kacijnk0kpwur",
+          "section": "statement",
+          "content": "Problem statement\n\nYou are given two 0-indexed arrays nums and cost consisting each of n positive integers.\nYou can do the following operation any number of times:\n\nIncrease or decrease any element of the array nums by 1.\n\nThe cost of doing one operation on the ith element is cost[i].\nReturn the minimum total cost such that all the elements of the array nums become equal.\n\nExample 1:\n\nInput: nums = [1,3,5,2], cost = [2,3,1,14]\nOutput: 8\nExplanation: We can make all the elements equal to 2 in the following way:\n- Increase the 0th element one time. The cost is 2.\n- Decrease the 1st element one time. The cost is 3.\n- Decrease the 2nd element three times. The cost is 1 + 1 + 1 = 3.\nThe total cost is 2 + 3 + 3 = 8.\nIt can be shown that we cannot make the array equal with a smaller cost.\n\nExample 2:\n\nInput: nums = [2,2,2,2,2], cost = [4,2,8,1,3]\nOutput: 0\nExplanation: All the elements are already equal, so no operations are needed."
+        },
+        {
+          "chunkId": "cmw0otj2t0t9oacijshv0elbt",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def minCost(self, nums: List[int], cost: List[int]) -> int:\n        a = sorted(zip(nums, cost))\n        n = len(a)\n        total = sum(c for _, c in a)\n        half = (total + 1) // 2\n        s = 0\n        x = a[0][0]\n        for v, c in a:\n            s += c\n            if s >= half:\n                x = v\n                break\n        ans = 0\n        for v, c in a:\n            ans += abs(v - x) * c\n        return ans"
+        },
+        {
+          "chunkId": "cmw0otj2t0t9nacijnjzawo9l",
+          "section": "editorial",
+          "content": "Constraints\n\nn == nums.length == cost.length\n1 <= n <= 105\n1 <= nums[i], cost[i] <= 106\nTest cases are generated in a way that the output doesn't exceed253-1"
+        }
+      ],
+      "answer": "Based on the provided sources, here are the key edge cases and pitfalls to watch for:\n\n### 1. Integer Overflow (64-bit integer requirement)\n* **Pitfall:** The constraints state that $n \\le 10^5$ and $nums[i], cost[i] \\le 10^6$, and that the output can reach up to $2^{53} - 1$ [Source 3]. \n* In languages with fixed-width integers (like C++ or Java), both the accumulated weight (`total`) and the total cost (`ans`) will exceed the capacity of a standard 32-bit signed integer (which caps at $\\approx 2 \\times 10^9$). You must use 64-bit integers (`long long` in C++, `long` in Java) to avoid arithmetic overflow [Source 2, Source 3].\n\n### 2. Already Equal Elements ($cost = 0$)\n* **Edge Case:** All elements in `nums` may already be equal [Source 1]. \n* As shown in Example 2 (`nums = [2,2,2,2,2]`), no operations are needed, and the result should correctly evaluate to `0` [Source 1].\n\n### 3. Single Element Array ($n = 1$)\n* **Edge Case:** The constraints allow $n = 1$ [Source 3]. \n* With only one element, no adjustments are needed. In the reference approach, `s >= half` triggers on the first element, and $\\sum |v - x| \\times c$ evaluates to $0$ [Source 2].\n\n### 4. Unlinking Elements from Their Costs\n* **Pitfall:** If you sort the values of `nums`, you must keep each value paired with its corresponding `cost[i]`. \n* As seen in the reference solution, the array must be sorted as pairs `(nums[i], cost[i])` (e.g., via `sorted(zip(nums, cost))`) so the weight remains associated with the correct number [Source 2].\n\n### 5. Using the Unweighted Median Instead of the Weighted Median\n* **Pitfall:** Choosing the median index of `nums` (i.e., the middle element after sorting) rather than the weighted median based on `cost`.\n* The optimal target value $x$ is the value where the running sum of costs reaches at least half of the total weight: `(total + 1) // 2` [Source 2]. Example 1 illustrates this: even though the numbers are `[1, 2, 3, 5]`, the heavily weighted element with cost 14 shifts the optimal target value to `2` [Source 1].",
+      "answerMs": 15722,
+      "tokensIn": 764,
+      "tokensOut": 594,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The constraints state that $n \\le 10^5$ and $nums[i], cost[i] \\le 10^6$.",
+            "supported": true
+          },
+          {
+            "text": "The output can reach up to $2^{53} - 1$.",
+            "supported": true
+          },
+          {
+            "text": "In languages with fixed-width integers (like C++ or Java), both the accumulated weight (`total`) and the total cost (`ans`) will exceed the capacity of a standard 32-bit signed integer.",
+            "supported": true
+          },
+          {
+            "text": "You must use 64-bit integers (`long long` in C++, `long` in Java) to avoid arithmetic overflow.",
+            "supported": true
+          },
+          {
+            "text": "All elements in `nums` may already be equal.",
+            "supported": true
+          },
+          {
+            "text": "If all elements are already equal, no operations are needed, and the result should correctly evaluate to `0`.",
+            "supported": true
+          },
+          {
+            "text": "The constraints allow $n = 1$.",
+            "supported": true
+          },
+          {
+            "text": "With only one element, no adjustments are needed.",
+            "supported": true
+          },
+          {
+            "text": "In the reference approach, `s >= half` triggers on the first element, and $\\sum |v - x| \\times c$ evaluates to $0$ for a single element array.",
+            "supported": true
+          },
+          {
+            "text": "If you sort the values of `nums`, you must keep each value paired with its corresponding `cost[i]`.",
+            "supported": true
+          },
+          {
+            "text": "The array must be sorted as pairs `(nums[i], cost[i])` (e.g., via `sorted(zip(nums, cost))`) so the weight remains associated with the correct number.",
+            "supported": true
+          },
+          {
+            "text": "Choosing the median index of `nums` (i.e., the middle element after sorting) rather than the weighted median based on `cost` is a pitfall.",
+            "supported": true
+          },
+          {
+            "text": "The optimal target value $x$ is the value where the running sum of costs reaches at least half of the total weight: `(total + 1) // 2`.",
+            "supported": true
+          },
+          {
+            "text": "Example 1 illustrates that a heavily weighted element can shift the optimal target value.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, either through explicit statements in the problem description/editorial or by direct demonstration in the reference solution code."
+      },
+      "judgeMs": 3290,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The constraints state that $n \\\\le 10^5$ and $nums[i], cost[i] \\\\le 10^6$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The output can reach up to $2^{53} - 1$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"In languages with fixed-width integers (like C++ or Java), both the accumulated weight (`total`) and the total cost (`ans`) will exceed the capacity of a standard 32-bit signed integer.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"You must use 64-bit integers (`long long` in C++, `long` in Java) to avoid arithmetic overflow.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"All elements in `nums` may already be equal.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If all elements are already equal, no operations are needed, and the result should correctly evaluate to `0`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The constraints allow $n = 1$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"With only one element, no adjustments are needed.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"In the reference approach, `s >= half` triggers on the first element, and $\\\\sum |v - x| \\\\times c$ evaluates to $0$ for a single element array.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If you sort the values of `nums`, you must keep each value paired with its corresponding `cost[i]`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The array must be sorted as pairs `(nums[i], cost[i])` (e.g., via `sorted(zip(nums, cost))`) so the weight remains associated with the correct number.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Choosing the median index of `nums` (i.e., the middle element after sorting) rather than the weighted median based on `cost` is a pitfall.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The optimal target value $x$ is the value where the running sum of costs reaches at least half of the total weight: `(total + 1) // 2`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Example 1 illustrates that a heavily weighted element can shift the optimal target value.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, either through explicit statements in the problem description/editorial or by direct demonstration in the reference solution code.\"\n}"
+    },
+    {
+      "slug": "minimum-window-substring",
+      "title": "Minimum Window Substring",
+      "difficulty": "Hard",
+      "question": "What is the key idea behind the optimal approach, and why does it work?",
+      "sources": [
+        {
+          "chunkId": "cmw0otm1k0xieacijm1t9wjfi",
+          "section": "statement",
+          "content": "Problem statement\n\nGiven two strings s and t of lengths m and n respectively, return the minimum window substring of s such that every character in t (including duplicates) is included in the window. If there is no such substring, return the empty string \"\".\nThe testcases will be generated such that the answer is unique.\n\nExample 1:\n\nInput: s = \"ADOBECODEBANC\", t = \"ABC\"\nOutput: \"BANC\"\nExplanation: The minimum window substring \"BANC\" includes 'A', 'B', and 'C' from string t.\n\nExample 2:\n\nInput: s = \"a\", t = \"a\"\nOutput: \"a\"\nExplanation: The entire string s is the minimum window.\n\nExample 3:\n\nInput: s = \"a\", t = \"aa\"\nOutput: \"\"\nExplanation: Both 'a's from t must be included in the window.\nSince the largest window of s only has one 'a', return empty string.\n\nFollow up: Could you find an algorithm that runs in O(m + n) time?"
+        },
+        {
+          "chunkId": "cmw0otm1k0xiiacijjjkkb8wr",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def minWindow(self, s: str, t: str) -> str:\n        need = [0] * 128\n        for ch in t:\n            need[ord(ch)] += 1\n        missing = len(t)\n        left = 0\n        best_l = 0\n        best_len = len(s) + 1\n        for right, ch in enumerate(s):\n            idx = ord(ch)\n            if need[idx] > 0:\n                missing -= 1\n            need[idx] -= 1\n            while missing == 0:\n                cur_len = right - left + 1\n                if cur_len < best_len:\n                    best_len = cur_len\n                    best_l = left\n                lidx = ord(s[left])\n                need[lidx] += 1\n                if need[lidx] > 0:\n                    missing += 1\n                left += 1\n        return \"\" if best_len > len(s) else s[best_l : best_l + best_len]"
+        },
+        {
+          "chunkId": "cmw0otm1k0xihacijfiwpo2pt",
+          "section": "editorial",
+          "content": "Constraints\n\nm == s.length\nn == t.length\n1 <= m, n <= 105\ns and t consist of uppercase and lowercase English letters."
+        }
+      ],
+      "answer": "### Key Idea Behind the Optimal Approach\n\nThe optimal approach uses a **sliding window** with two pointers (`left` and `right`) and a frequency array/hash table to track character requirements [[Source 2]]. \n\nHere is how it works step-by-step based on the reference solution [[Source 2]]:\n\n1. **Count requirements:** \n   Initialize an array `need` of size 128 to store the count of each character in `t`, and set a counter `missing = len(t)` representing the total number of characters still needed [[Source 2]].\n\n2. **Expand the window (`right` pointer):**\n   Iterate `right` through string `s`. For each character:\n   - If `need[idx] > 0`, that character fulfills part of `t`, so decrement `missing` by 1 [[Source 2]].\n   - Decrement `need[idx]` (counts can become negative if characters are not in `t` or are extra duplicates) [[Source 2]].\n\n3. **Shrink the window (`left` pointer):**\n   Whenever `missing == 0`, the current window `s[left : right + 1]` contains all characters of `t` [[Source 1], [Source 2]].\n   - Check if the current window length is smaller than the best recorded length (`best_len`), and update `best_len` and `best_l` if so [[Source 2]].\n   - Shrink the window from the left by advancing `left`:\n     - Add `s[left]` back: `need[lidx] += 1` [[Source 2]].\n     - If `need[lidx] > 0`, a strictly needed character was removed from the window, so increment `missing` by 1, which ends the shrinking phase [[Source 2]].\n     - Increment `left` [[Source 2]].\n\n4. **Return result:**\n   Once `right` finishes scanning `s`, return the substring starting at `best_l` of length `best_len`, or `\"\"` if no valid window was found (`best_len > len(s)`) [[Source 2]].\n\n---\n\n### Why It Works\n\n- **Accurate validity check:** The counter `missing` only tracks characters that actively satisfy requirements from `t`. Excess copies of characters or characters not present in `t` drop their entry in `need` below zero, so releasing them from the left does not increase `missing` or invalidate the window until all excess is stripped away [[Source 2]].\n- **Monotonicity of windows:** Expanding `right` can only add required characters (moving toward a valid window), while contracting `left` removes characters to find the strictly smallest window ending at the current `right` [[Source 2]]. Every minimal valid window is considered.\n\n---\n\n### Complexity Analysis\n\n- **Time Complexity:** $O(m + n)$, where $m = \\text{len}(s)$ and $n = \\text{len}(t)$ [[Source 1], [Source 3]].\n  - Building the initial frequency array takes $O(n)$ time [[Source 2]].\n  - The `right` pointer traverses $s$ from $0$ to $m - 1$, and the `left` pointer moves forward at most $m$ times in total. Each character is processed at most twice in $O(1)$ operations [[Source 2]].\n- **Space Complexity:** $O(1)$ auxiliary space, since `need` uses a fixed-size array of 128 integers to store ASCII character counts [[Source 2]].",
+      "answerMs": 12960,
+      "tokensIn": 796,
+      "tokensOut": 775,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The optimal approach uses a sliding window with two pointers (`left` and `right`) and a frequency array/hash table to track character requirements.",
+            "supported": true
+          },
+          {
+            "text": "An array `need` of size 128 is initialized to store the count of each character in `t`.",
+            "supported": true
+          },
+          {
+            "text": "A counter `missing` is initialized to `len(t)` representing the total number of characters still needed.",
+            "supported": true
+          },
+          {
+            "text": "The `right` pointer iterates through string `s`.",
+            "supported": true
+          },
+          {
+            "text": "For each character `ch` at `right`, if `need[ord(ch)] > 0`, the character fulfills part of `t`, so `missing` is decremented by 1.",
+            "supported": true
+          },
+          {
+            "text": "`need[ord(ch)]` is decremented (counts can become negative if characters are not in `t` or are extra duplicates).",
+            "supported": true
+          },
+          {
+            "text": "Whenever `missing == 0`, the current window `s[left : right + 1]` contains all characters of `t`.",
+            "supported": true
+          },
+          {
+            "text": "The current window length (`cur_len`) is compared with `best_len`, and `best_len` and `best_l` are updated if `cur_len` is smaller.",
+            "supported": true
+          },
+          {
+            "text": "To shrink the window, `s[left]` is added back by incrementing `need[ord(s[left])]`.",
+            "supported": true
+          },
+          {
+            "text": "If `need[ord(s[left])] > 0` after incrementing, a strictly needed character was removed, so `missing` is incremented by 1.",
+            "supported": true
+          },
+          {
+            "text": "The `left` pointer is incremented.",
+            "supported": true
+          },
+          {
+            "text": "Once `right` finishes scanning `s`, the substring starting at `best_l` of length `best_len` is returned, or `\"\"` if no valid window was found (`best_len > len(s)`).",
+            "supported": true
+          },
+          {
+            "text": "The counter `missing` only tracks characters that actively satisfy requirements from `t`.",
+            "supported": true
+          },
+          {
+            "text": "Excess copies of characters or characters not present in `t` drop their entry in `need` below zero.",
+            "supported": true
+          },
+          {
+            "text": "Releasing excess characters from the left does not increase `missing` or invalidate the window until all excess is stripped away.",
+            "supported": true
+          },
+          {
+            "text": "Expanding `right` can only add required characters (moving toward a valid window).",
+            "supported": true
+          },
+          {
+            "text": "Contracting `left` removes characters to find the strictly smallest window ending at the current `right`.",
+            "supported": true
+          },
+          {
+            "text": "Every minimal valid window is considered.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity is O(m + n), where m = len(s) and n = len(t).",
+            "supported": true
+          },
+          {
+            "text": "Building the initial frequency array takes O(n) time.",
+            "supported": true
+          },
+          {
+            "text": "The `right` pointer traverses `s` from 0 to m - 1.",
+            "supported": true
+          },
+          {
+            "text": "The `left` pointer moves forward at most m times in total.",
+            "supported": true
+          },
+          {
+            "text": "Each character is processed at most twice in O(1) operations.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(1) auxiliary space.",
+            "supported": true
+          },
+          {
+            "text": "`need` uses a fixed-size array of 128 integers to store ASCII character counts.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, either explicitly in the text or demonstrably in the code."
+      },
+      "judgeMs": 6147,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The optimal approach uses a sliding window with two pointers (`left` and `right`) and a frequency array/hash table to track character requirements.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"An array `need` of size 128 is initialized to store the count of each character in `t`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"A counter `missing` is initialized to `len(t)` representing the total number of characters still needed.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `right` pointer iterates through string `s`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For each character `ch` at `right`, if `need[ord(ch)] > 0`, the character fulfills part of `t`, so `missing` is decremented by 1.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"`need[ord(ch)]` is decremented (counts can become negative if characters are not in `t` or are extra duplicates).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Whenever `missing == 0`, the current window `s[left : right + 1]` contains all characters of `t`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The current window length (`cur_len`) is compared with `best_len`, and `best_len` and `best_l` are updated if `cur_len` is smaller.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"To shrink the window, `s[left]` is added back by incrementing `need[ord(s[left])]`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If `need[ord(s[left])] > 0` after incrementing, a strictly needed character was removed, so `missing` is incremented by 1.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `left` pointer is incremented.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Once `right` finishes scanning `s`, the substring starting at `best_l` of length `best_len` is returned, or `\\\"\\\"` if no valid window was found (`best_len > len(s)`).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The counter `missing` only tracks characters that actively satisfy requirements from `t`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Excess copies of characters or characters not present in `t` drop their entry in `need` below zero.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Releasing excess characters from the left does not increase `missing` or invalidate the window until all excess is stripped away.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Expanding `right` can only add required characters (moving toward a valid window).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Contracting `left` removes characters to find the strictly smallest window ending at the current `right`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Every minimal valid window is considered.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity is O(m + n), where m = len(s) and n = len(t).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Building the initial frequency array takes O(n) time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `right` pointer traverses `s` from 0 to m - 1.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `left` pointer moves forward at most m times in total.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Each character is processed at most twice in O(1) operations.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(1) auxiliary space.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"`need` uses a fixed-size array of 128 integers to store ASCII character counts.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, either explicitly in the text or demonstrably in the code.\"\n}"
+    },
+    {
+      "slug": "partition-array-for-maximum-sum",
+      "title": "Partition Array For Maximum Sum",
+      "difficulty": "Medium",
+      "question": "What are the time and space complexity, and why?",
+      "sources": [
+        {
+          "chunkId": "cmw0otovx11oeacijq342s157",
+          "section": "statement",
+          "content": "Problem statement\n\nGiven an integer array arr, partition the array into (contiguous) subarrays of length at most k. After partitioning, each subarray has their values changed to become the maximum value of that subarray.\nReturn the largest sum of the given array after partitioning. Test cases are generated so that the answer fits in a 32-bit integer.\n\nExample 1:\n\nInput: arr = [1,15,7,9,2,5,10], k = 3\nOutput: 84\nExplanation: arr becomes [15,15,15,9,10,10,10]\n\nExample 2:\n\nInput: arr = [1,4,1,5,7,3,6,1,9,9,3], k = 4\nOutput: 83\n\nExample 3:\n\nInput: arr = [1], k = 1\nOutput: 1"
+        },
+        {
+          "chunkId": "cmw0otovx11oiacijuhharf95",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def maxSumAfterPartitioning(self, arr: List[int], k: int) -> int:\n        n = len(arr)\n        dp = [0] * (n + 1)\n        for i in range(1, n + 1):\n            best = 0\n            mx = 0\n            lim = k if k < i else i\n            for j in range(1, lim + 1):\n                v = arr[i - j]\n                if v > mx:\n                    mx = v\n                cand = dp[i - j] + mx * j\n                if cand > best:\n                    best = cand\n            dp[i] = best\n        return dp[n]"
+        },
+        {
+          "chunkId": "cmw0otovx11ohacijcg6hsqji",
+          "section": "editorial",
+          "content": "Constraints\n\n1 <= arr.length <= 500\n0 <= arr[i] <= 109\n1 <= k <= arr.length"
+        }
+      ],
+      "answer": "Based on the reference solution in [Source 2], here are the time and space complexities:\n\n### Time Complexity: $O(n \\cdot k)$\n* **Why:** \n  * Let $n$ be the length of `arr` (`len(arr)`).\n  * The outer loop runs $n$ times, with $i$ going from $1$ to $n$ [Source 2].\n  * Inside, the inner loop runs for $j$ from $1$ to `lim`, where `lim` is $\\min(k, i)$, which is at most $k$ iterations [Source 2].\n  * Inside the inner loop, all operations (finding the running maximum `mx`, calculating `cand = dp[i - j] + mx * j`, and updating `best`) are constant-time $O(1)$ operations [Source 2].\n  * Therefore, the total number of operations is proportional to $n \\times k$, giving an overall time complexity of $O(n \\cdot k)$.\n\n---\n\n### Space Complexity: $O(n)$\n* **Why:**\n  * The solution creates an array `dp` of size $n + 1$ (`dp = [0] * (n + 1)`) to store the best results for prefixes of length $0$ through $n$ [Source 2].\n  * All other variables (`best`, `mx`, `lim`, `v`, `cand`) require $O(1)$ auxiliary space [Source 2].\n  * Thus, the total extra space used is $O(n)$.",
+      "answerMs": 9332,
+      "tokensIn": 661,
+      "tokensOut": 341,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The time complexity is O(n · k).",
+            "supported": true
+          },
+          {
+            "text": "Let n be the length of `arr`.",
+            "supported": true
+          },
+          {
+            "text": "The outer loop iterates n times, with `i` going from 1 to n.",
+            "supported": true
+          },
+          {
+            "text": "The inner loop iterates for `j` from 1 to `lim`.",
+            "supported": true
+          },
+          {
+            "text": "`lim` is the minimum of `k` and `i`.",
+            "supported": true
+          },
+          {
+            "text": "The inner loop runs at most k iterations.",
+            "supported": true
+          },
+          {
+            "text": "Operations inside the inner loop (finding `mx`, calculating `cand`, updating `best`) are constant-time O(1).",
+            "supported": true
+          },
+          {
+            "text": "The total number of operations is proportional to n × k.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(n).",
+            "supported": true
+          },
+          {
+            "text": "The solution creates a `dp` array of size n + 1.",
+            "supported": true
+          },
+          {
+            "text": "The `dp` array stores the best results for prefixes of length 0 through n.",
+            "supported": true
+          },
+          {
+            "text": "Other variables (`best`, `mx`, `lim`, `v`, `cand`) require O(1) auxiliary space.",
+            "supported": true
+          },
+          {
+            "text": "The total extra space used is O(n).",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, particularly the reference solution code and its explanation."
+      },
+      "judgeMs": 2871,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The time complexity is O(n \\u00b7 k).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Let n be the length of `arr`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The outer loop iterates n times, with `i` going from 1 to n.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The inner loop iterates for `j` from 1 to `lim`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"`lim` is the minimum of `k` and `i`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The inner loop runs at most k iterations.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Operations inside the inner loop (finding `mx`, calculating `cand`, updating `best`) are constant-time O(1).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The total number of operations is proportional to n \\u00d7 k.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(n).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The solution creates a `dp` array of size n + 1.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The `dp` array stores the best results for prefixes of length 0 through n.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Other variables (`best`, `mx`, `lim`, `v`, `cand`) require O(1) auxiliary space.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The total extra space used is O(n).\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, particularly the reference solution code and its explanation.\"\n}"
+    },
+    {
+      "slug": "row-with-maximum-ones",
+      "title": "Row With Maximum Ones",
+      "difficulty": "Easy",
+      "question": "Walk me through the algorithm step by step.",
+      "sources": [
+        {
+          "chunkId": "cmw0otrn115u5acijguac7ecl",
+          "section": "statement",
+          "content": "Problem statement\n\nGiven a m x n binary matrix mat, find the 0-indexed position of the row that contains the maximum count of ones, and the number of ones in that row.\nIn case there are multiple rows that have the maximum count of ones, the row with the smallest row number should be selected.\nReturn an array containing the index of the row, and the number of ones in it.\n\nExample 1:\n\nInput: mat = [[0,1],[1,0]]\nOutput: [0,1]\nExplanation: Both rows have the same number of 1's. So we return the index of the smaller row, 0, and the maximum count of ones (1). So, the answer is [0,1].\n\nExample 2:\n\nInput: mat = [[0,0,0],[0,1,1]]\nOutput: [1,2]\nExplanation: The row indexed 1 has the maximum count of ones (2). So we return its index, 1, and the count. So, the answer is [1,2].\n\nExample 3:\n\nInput: mat = [[0,0],[1,1],[0,0]]\nOutput: [1,2]\nExplanation: The row indexed 1 has the maximum count of ones (2). So the answer is [1,2]."
+        },
+        {
+          "chunkId": "cmw0otrn215u9acijhe828s32",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def rowAndMaximumOnes(self, mat: List[List[int]]) -> List[int]:\n        best_i = 0\n        best_c = -1\n        for i, row in enumerate(mat):\n            c = sum(row)\n            if c > best_c:\n                best_c = c\n                best_i = i\n        return [best_i, best_c]"
+        },
+        {
+          "chunkId": "cmw0otrn215u8acijqop8wvc7",
+          "section": "editorial",
+          "content": "Constraints\n\nm == mat.length\nn == mat[i].length\n1 <= m, n <= 100\nmat[i][j] is either 0 or 1."
+        }
+      ],
+      "answer": "Here is a step-by-step walkthrough of the algorithm based on the reference solution [Source 2]:\n\n### Step 1: Initialize tracking variables\n- Set `best_i = 0` to record the index of the row with the maximum number of ones [Source 2].\n- Set `best_c = -1` to record the maximum count of ones seen so far [Source 2]. Starting with `-1` ensures that the first row evaluated will always update `best_c`, even if that row contains zero ones [Source 2].\n\n### Step 2: Iterate through the matrix\n- Loop over the matrix using `enumerate(mat)` to inspect each row along with its 0-based index `i` [Source 1, Source 2].\n\n### Step 3: Count ones in the current row\n- Calculate the number of ones in the row using `c = sum(row)` [Source 2]. Because each entry in the matrix is either `0` or `1` [Source 3], the sum directly equals the count of ones [Source 2].\n\n### Step 4: Compare and update the best row\n- Check if `c > best_c` [Source 2]:\n  - If the current row's count is strictly greater than `best_c`, update `best_c = c` and `best_i = i` [Source 2].\n  - If `c` is equal to or less than `best_c`, do nothing [Source 2]. Because a strict inequality (`>`) is used and rows are processed in increasing order of their indices, ties are broken in favor of the smallest row index [Source 1, Source 2].\n\n### Step 5: Return the result\n- After checking all rows, return `[best_i, best_c]` [Source 2].\n\n---\n\n### Complexity Analysis\n- **Time Complexity:** $O(m \\times n)$, where $m$ is the number of rows and $n$ is the number of columns [Source 3]. The loop runs $m$ times, and computing `sum(row)` takes $O(n)$ time for each row [Source 2, Source 3].\n- **Space Complexity:** $O(1)$ auxiliary space, as only a few variables (`best_i`, `best_c`, `c`, and loop variables) are maintained [Source 2].",
+      "answerMs": 11380,
+      "tokensIn": 688,
+      "tokensOut": 515,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "The algorithm initializes `best_i = 0` to track the index of the row with the maximum number of ones.",
+            "supported": true
+          },
+          {
+            "text": "It initializes `best_c = -1` to track the maximum count of ones found so far.",
+            "supported": true
+          },
+          {
+            "text": "Starting `best_c` at -1 ensures that the first row evaluated will always update `best_c`, even if that row contains zero ones.",
+            "supported": true
+          },
+          {
+            "text": "The algorithm iterates through the matrix using `enumerate(mat)` to get each row and its 0-based index `i`.",
+            "supported": true
+          },
+          {
+            "text": "For each row, it calculates the number of ones using `c = sum(row)`.",
+            "supported": true
+          },
+          {
+            "text": "Since `mat[i][j]` is either 0 or 1, `sum(row)` directly gives the count of ones.",
+            "supported": true
+          },
+          {
+            "text": "It checks if the current row's count `c` is strictly greater than `best_c`.",
+            "supported": true
+          },
+          {
+            "text": "If `c > best_c`, it updates `best_c = c` and `best_i = i`.",
+            "supported": true
+          },
+          {
+            "text": "If `c` is equal to or less than `best_c`, no update occurs.",
+            "supported": true
+          },
+          {
+            "text": "The use of a strict inequality (`>`) and processing rows in increasing order of their indices ensures that ties in the count of ones are broken in favor of the smallest row index.",
+            "supported": true
+          },
+          {
+            "text": "After iterating through all rows, the algorithm returns `[best_i, best_c]`.",
+            "supported": true
+          },
+          {
+            "text": "The time complexity is O(m × n), where m is the number of rows and n is the number of columns.",
+            "supported": true
+          },
+          {
+            "text": "This is because the loop runs m times, and `sum(row)` takes O(n) time for each row.",
+            "supported": true
+          },
+          {
+            "text": "The space complexity is O(1) auxiliary space, as only a few variables are maintained.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including the code and prose, with accurate complexity analysis."
+      },
+      "judgeMs": 3480,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"The algorithm initializes `best_i = 0` to track the index of the row with the maximum number of ones.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"It initializes `best_c = -1` to track the maximum count of ones found so far.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Starting `best_c` at -1 ensures that the first row evaluated will always update `best_c`, even if that row contains zero ones.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algorithm iterates through the matrix using `enumerate(mat)` to get each row and its 0-based index `i`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For each row, it calculates the number of ones using `c = sum(row)`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Since `mat[i][j]` is either 0 or 1, `sum(row)` directly gives the count of ones.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"It checks if the current row's count `c` is strictly greater than `best_c`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If `c > best_c`, it updates `best_c = c` and `best_i = i`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"If `c` is equal to or less than `best_c`, no update occurs.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The use of a strict inequality (`>`) and processing rows in increasing order of their indices ensures that ties in the count of ones are broken in favor of the smallest row index.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"After iterating through all rows, the algorithm returns `[best_i, best_c]`.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The time complexity is O(m \\u00d7 n), where m is the number of rows and n is the number of columns.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"This is because the loop runs m times, and `sum(row)` takes O(n) time for each row.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The space complexity is O(1) auxiliary space, as only a few variables are maintained.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including the code and prose, with accurate complexity analysis.\"\n}"
+    },
+    {
+      "slug": "sum-of-absolute-differences-in-a-sorted-array",
+      "title": "Sum Of Absolute Differences In A Sorted Array",
+      "difficulty": "Medium",
+      "question": "What edge cases or pitfalls should I watch for?",
+      "sources": [
+        {
+          "chunkId": "cmw0otupl19z7acij7wjn8dfb",
+          "section": "statement",
+          "content": "Problem statement\n\nYou are given an integer array nums sorted in non-decreasing order.\nBuild and return an integer array result with the same length as nums such that result[i] is equal to the summation of absolute differences between nums[i] and all the other elements in the array.\nIn other words, result[i] is equal to sum(|nums[i]-nums[j]|) where 0 <= j < nums.length and j != i (0-indexed).\n\nExample 1:\n\nInput: nums = [2,3,5]\nOutput: [4,3,5]\nExplanation: Assuming the arrays are 0-indexed, then\nresult[0] = |2-2| + |2-3| + |2-5| = 0 + 1 + 3 = 4,\nresult[1] = |3-2| + |3-3| + |3-5| = 1 + 0 + 2 = 3,\nresult[2] = |5-2| + |5-3| + |5-5| = 3 + 2 + 0 = 5.\n\nExample 2:\n\nInput: nums = [1,4,6,8,10]\nOutput: [24,15,13,15,21]"
+        },
+        {
+          "chunkId": "cmw0otupm19zbacijx9x4tcxx",
+          "section": "code",
+          "content": "Reference solution\n\nclass Solution:\n    def getSumAbsoluteDifferences(self, nums: List[int]) -> List[int]:\n        n = len(nums)\n        total = sum(nums)\n        left = 0\n        res = [0] * n\n        for i, x in enumerate(nums):\n            right = total - left - x\n            res[i] = x * i - left + right - x * (n - i - 1)\n            left += x\n        return res"
+        },
+        {
+          "chunkId": "cmw0otupm19zaacijtqzjpt9c",
+          "section": "editorial",
+          "content": "Constraints\n\n2 <= nums.length <= 105\n1 <= nums[i] <= nums[i + 1] <= 104"
+        }
+      ],
+      "answer": "Based on the provided statement, constraints, and reference solution, here are the key pitfalls and edge cases to watch for:\n\n### 1. Falling into an $O(n^2)$ Brute-Force Pitfall\n* **Pitfall:** Computing $\\sum |nums[i] - nums[j]|$ by iterating through all $j$ for every index $i$ takes $O(n^2)$ time [Source 1]. \n* **Watch out:** Since $nums.length$ can be up to $10^5$ [Source 3], an $O(n^2)$ solution will be too slow. The reference solution avoids this by computing prefix/suffix sums in $O(n)$ time [Source 2].\n\n---\n\n### 2. Off-by-One Errors in Left vs. Right Partitioning\n* **Pitfall:** Incorrectly counting how many elements are strictly to the left or strictly to the right of index $i$.\n* **How to avoid:** For a 0-indexed element at index $i$ in an array of size $n$:\n  * There are $i$ elements to its left [Source 2].\n  * There are $n - i - 1$ elements to its right [Source 2].\n  * When splitting the total sum, make sure to exclude the current element $x$ from both sides: $\\text{right} = \\text{total} - \\text{left} - x$ [Source 2].\n\n---\n\n### 3. Boundary Indices (First and Last Elements)\n* **At $i = 0$:** There are no elements to the left ($i = 0$, $\\text{left} = 0$). The formula handles this as $x \\cdot 0 - 0 = 0$, so only the right side contributes [Source 2].\n* **At $i = n - 1$:** There are no elements to the right ($n - i - 1 = 0$, $\\text{right} = 0$). The formula handles this as $0 - x \\cdot 0 = 0$, so only the left side contributes [Source 2].\n* Make sure your implementation handles these boundaries without out-of-bounds indexing or division by zero.\n\n---\n\n### 4. Duplicate Elements\n* The constraints state $nums[i] \\le nums[i + 1]$ [Source 3], meaning identical adjacent values are possible.\n* The algebraic expansion used in the reference solution ($x \\cdot i - \\text{left} + \\text{right} - x \\cdot (n - i - 1)$) works identically for duplicate values because $|nums[i] - nums[j]| = 0$ when $nums[i] == nums[j]$ [Source 1, Source 2].\n\n---\n\n### 5. Minimum Array Size\n* The constraint specifies $2 \\le nums.length$ [Source 3], so you do not need to handle empty or single-element arrays, but you should ensure your logic holds for the smallest valid input of $n = 2$.",
+      "answerMs": 18663,
+      "tokensIn": 702,
+      "tokensOut": 665,
+      "judge": {
+        "faithfulness": 5,
+        "hallucinated": false,
+        "claims": [
+          {
+            "text": "Computing $\\sum |nums[i] - nums[j]|$ by iterating through all $j$ for every index $i$ takes $O(n^2)$ time.",
+            "supported": true
+          },
+          {
+            "text": "Since $nums.length$ can be up to $10^5$, an $O(n^2)$ solution will be too slow.",
+            "supported": true
+          },
+          {
+            "text": "The reference solution avoids the $O(n^2)$ pitfall by computing prefix/suffix sums in $O(n)$ time.",
+            "supported": true
+          },
+          {
+            "text": "For a 0-indexed element at index $i$ in an array of size $n$, there are $i$ elements to its left.",
+            "supported": true
+          },
+          {
+            "text": "For a 0-indexed element at index $i$ in an array of size $n$, there are $n - i - 1$ elements to its right.",
+            "supported": true
+          },
+          {
+            "text": "When splitting the total sum, the current element $x$ should be excluded from both sides, as shown by $\\text{right} = \\text{total} - \\text{left} - x$ in the reference solution.",
+            "supported": true
+          },
+          {
+            "text": "At $i = 0$, there are no elements to the left ($i = 0$, $\\text{left} = 0$).",
+            "supported": true
+          },
+          {
+            "text": "The formula $x \\cdot i - \\text{left}$ handles $i=0$ correctly as $x \\cdot 0 - 0 = 0$, so only the right side contributes.",
+            "supported": true
+          },
+          {
+            "text": "At $i = n - 1$, there are no elements to the right ($n - i - 1 = 0$, $\\text{right} = 0$).",
+            "supported": true
+          },
+          {
+            "text": "The formula $\\text{right} - x \\cdot (n - i - 1)$ handles $i=n-1$ correctly as $0 - x \\cdot 0 = 0$, so only the left side contributes.",
+            "supported": true
+          },
+          {
+            "text": "The constraints state $nums[i] \\le nums[i + 1]$, meaning identical adjacent values are possible.",
+            "supported": true
+          },
+          {
+            "text": "The algebraic expansion used in the reference solution ($x \\cdot i - \\text{left} + \\text{right} - x \\cdot (n - i - 1)$) works identically for duplicate values.",
+            "supported": true
+          },
+          {
+            "text": "The algebraic expansion works for duplicate values because $|nums[i] - nums[j]| = 0$ when $nums[i] == nums[j]$.",
+            "supported": true
+          },
+          {
+            "text": "The constraint specifies $2 \\le nums.length$, so empty or single-element arrays do not need to be handled.",
+            "supported": true
+          }
+        ],
+        "notes": "All claims are directly supported by the provided sources, including the problem statement, constraints, and the mechanics demonstrated in the reference solution code."
+      },
+      "judgeMs": 3982,
+      "judgeRaw": "{\n  \"faithfulness\": 5,\n  \"hallucinated\": false,\n  \"claims\": [\n    {\n      \"text\": \"Computing $\\\\sum |nums[i] - nums[j]|$ by iterating through all $j$ for every index $i$ takes $O(n^2)$ time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"Since $nums.length$ can be up to $10^5$, an $O(n^2)$ solution will be too slow.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The reference solution avoids the $O(n^2)$ pitfall by computing prefix/suffix sums in $O(n)$ time.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For a 0-indexed element at index $i$ in an array of size $n$, there are $i$ elements to its left.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"For a 0-indexed element at index $i$ in an array of size $n$, there are $n - i - 1$ elements to its right.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"When splitting the total sum, the current element $x$ should be excluded from both sides, as shown by $\\\\text{right} = \\\\text{total} - \\\\text{left} - x$ in the reference solution.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"At $i = 0$, there are no elements to the left ($i = 0$, $\\\\text{left} = 0$).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The formula $x \\\\cdot i - \\\\text{left}$ handles $i=0$ correctly as $x \\\\cdot 0 - 0 = 0$, so only the right side contributes.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"At $i = n - 1$, there are no elements to the right ($n - i - 1 = 0$, $\\\\text{right} = 0$).\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The formula $\\\\text{right} - x \\\\cdot (n - i - 1)$ handles $i=n-1$ correctly as $0 - x \\\\cdot 0 = 0$, so only the left side contributes.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The constraints state $nums[i] \\\\le nums[i + 1]$, meaning identical adjacent values are possible.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algebraic expansion used in the reference solution ($x \\\\cdot i - \\\\text{left} + \\\\text{right} - x \\\\cdot (n - i - 1)$) works identically for duplicate values.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The algebraic expansion works for duplicate values because $|nums[i] - nums[j]| = 0$ when $nums[i] == nums[j]$.\",\n      \"supported\": true\n    },\n    {\n      \"text\": \"The constraint specifies $2 \\\\le nums.length$, so empty or single-element arrays do not need to be handled.\",\n      \"supported\": true\n    }\n  ],\n  \"notes\": \"All claims are directly supported by the provided sources, including the problem statement, constraints, and the mechanics demonstrated in the reference solution code.\"\n}"
+    }
+  ]
+}

@@ -19,6 +19,36 @@ npm run dev
 
 `npm run data:check` asserts that the index has no seeder placeholder chunks, every problem exposes exactly one sample test and hides the rest, and every chunk has an embedding and a full-text vector.
 
+## Deployment
+
+The app runs on Vercel with a hosted Postgres that supports the `vector` extension. Set these variables in the Vercel project (Production and Preview), or locally in `.env` before the first migration:
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Hosted Postgres URL; append `?sslmode=require` |
+| `BETTER_AUTH_SECRET` | Session signing secret (`openssl rand -base64 32`) |
+| `BETTER_AUTH_URL` | Public origin, e.g. `https://dsa-forge.vercel.app` |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google sign-in |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub sign-in |
+| `GEMINI_API_KEY` | Embeddings, tutor, and code generation |
+| `JINA_API_KEY` | Optional cross-encoder reranking |
+
+Register the OAuth callbacks against the deployed origin:
+
+```text
+https://<host>/api/auth/callback/google
+https://<host>/api/auth/callback/github
+```
+
+Apply migrations and verify the data once the database URL is set:
+
+```bash
+npx prisma migrate deploy
+npm run data:check
+```
+
+Without `GEMINI_API_KEY` search still works in keyword-only mode; vector search, tutor answers, and code generation need the key. Vercel Sandbox uses the project's OIDC credentials automatically in production. For local code execution, link the project and pull development variables with `npx vercel link && npx vercel env pull .env.local`.
+
 ## Search evaluation
 
 The golden set mixes the four query types the PRD calls for:
